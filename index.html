@@ -36,6 +36,8 @@
     <script src="js/loaders/MTLLoader.js"></script>
     <script src="js/loaders/OBJLoader.js"></script>
     <script src="js/loaders/OBJMTLLoader.js"></script>
+    <script src="js/engine/controller.js"></script>
+    <script src="js/engine/board.js"></script>
 
     <script>
         var container, stats;
@@ -64,29 +66,10 @@
             var directionalLight = new THREE.DirectionalLight(0xffeedd);
             directionalLight.position.set(0.5, 2, 1).normalize();
             scene.add(directionalLight);
+            
+            //Get a new game controller, also builds the board
+            var controller = new Controller(scene);
 
-            // model - adding everything to this?
-            board = new THREE.Object3D();
-
-            var loader = new THREE.OBJMTLLoader();
-            loader.load('models/boardBlocks.obj', 'models/boardBlocks.mtl', function (object) {
-                object.traverse(function (child) {
-                    if (child instanceof THREE.Mesh)
-                        child.material.color.setRGB(1, 1, 1);
-                });
-                board.add(object);
-
-                // black spaces
-                var cloned = cloneObj(object);
-                cloned.traverse(function (child) {
-                    if (child instanceof THREE.Mesh)
-                        child.material.color.setRGB(0, 0, 0);
-                });
-                cloned.rotateY(Math.PI / 2);    // 90 degrees
-                board.add(cloned);
-            });
-
-            scene.add(board);
             renderer = new THREE.WebGLRenderer();
             renderer.setSize(window.innerWidth, window.innerHeight);
             container.appendChild(renderer.domElement);
