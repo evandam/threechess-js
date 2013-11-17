@@ -297,4 +297,76 @@ Board.prototype.loadPieces = function( ) {
      */
     loadBishops(setWhite, whiteInitial, whiteRotation, resetWhiteRot);
     loadBishops(setBlack, blackInitial, blackRotation, resetBlackRot);
+
+    /*
+     * Queen loading functions
+     */
+    whiteInitial = function( piece ) {
+        piece.translateX(-0.5);
+        piece.translateY(1);
+        piece.translateZ(3.5);
+    };
+
+    blackInitial = function( piece ) {
+        piece.translateX(-0.5);
+        piece.translateY(1);
+        piece.translateZ(-3.5);
+    };
+
+    /*
+     * Object load function for the Queens
+     */
+    var loadQueen = function( setcolor, startpos ) {
+        loader.load('models/queen.obj', 'models/queen.mtl', function( object ) {
+            var queen = object;
+            // Only one king
+            setcolor(queen);
+            startpos(queen);
+            scalePiece(queen);
+
+            board.add(queen);
+        });
+    };
+
+    /*
+     * Generate the Queens
+     */
+    loadQueen(setWhite, whiteInitial);
+    loadQueen(setBlack, blackInitial);
+
+    /*
+     * King loading functions
+     */
+    whiteInitial = function( piece ) {
+        piece.translateX(0.5);
+        piece.translateY(1);
+        piece.translateZ(3.5);
+    };
+
+    blackInitial = function( piece ) {
+        piece.translateX(0.5);
+        piece.translateY(1);
+        piece.translateZ(-3.5);
+    };
+
+    /*
+     * Object load function for the Kings
+     */
+    var loadKing = function( setcolor, startpos ) {
+        loader.load('models/king.obj', 'models/king.mtl', function( object ) {
+            var king = object;
+            // Only one king
+            setcolor(king);
+            startpos(king);
+            scalePiece(king);
+
+            board.add(king);
+        });
+    };
+
+    /*
+     * Generate the Kings
+     */
+    loadKing(setWhite, whiteInitial);
+    loadKing(setBlack, blackInitial);
 };
