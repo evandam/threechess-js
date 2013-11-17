@@ -149,30 +149,78 @@ Board.prototype.loadPieces = function( ) {
     var loadRooks = function( setcolor, startpos ) {
         loader.load('models/rook.obj', 'models/rook.mtl', function( object ) {
             var rook = object;
-            //Color and put in first position
+            // Color and put in first position
             setcolor(rook);
             startpos(rook);
-            
-            //Scale it appropriately
+
+            // Scale it appropriately
             scalePiece(rook);
-            
-            //Add it to the board
+
+            // Add it to the board
             board.add(rook);
-            
-            //Make the other rook
+
+            // Make the other rook
             rook = rook.clone();
-            //Move to other side of board
+            // Move to other side of board
             rook.translateX(7);
-            //Add it to the board
+            // Add it to the board
             board.add(rook);
         });
     };
-    
+
     /*
      * Generate the rooks
      */
     loadRooks(setWhite, whiteInitial);
     loadRooks(setBlack, blackInitial);
-    
 
+    /*
+     * Knight loading functions
+     */
+    whiteInitial = function( piece ) {
+        piece.translateY(1);
+        piece.translateZ(3.5);
+        
+        //Knights on the white side need to be rotated 180 degrees
+        piece.rotateY(Math.PI);
+        //Then moved into place on the X-axis
+        piece.translateX(-2.5);
+    };
+
+    blackInitial = function( piece ) {
+        piece.translateX(-2.5);
+        piece.translateY(1);
+        piece.translateZ(-3.5);
+    };
+
+    /*
+     * Object load function for the knights
+     */
+    var loadKnights = function( setcolor, startpos ) {
+        loader.load('models/knight.obj', 'models/knight.mtl',
+                function( object ) {
+                    var knight = object;
+                    
+                    //You know the drill
+                    setcolor(knight);
+                    startpos(knight);
+                    scalePiece(knight);
+                    board.add(knight);
+                    
+                    //and the second
+                    knight = knight.clone();
+                    knight.translateX(5);
+                    board.add(knight);
+                });
+    };
+    
+    /*
+     * Generate the knights
+     */
+    loadKnights(setWhite, whiteInitial);
+    loadKnights(setBlack, blackInitial);
+    
+    /*
+     * Bishop loading functions
+     */
 };
