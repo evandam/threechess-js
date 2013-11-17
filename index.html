@@ -1,0 +1,138 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Chess Visualizer - Daniel Rogers, Evan Van Dam</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+        body {
+            font-family: Monospace;
+            background-color: #333;
+            color: #fff;
+            margin: 0px;
+            overflow: hidden;
+        }
+
+        #info {
+            color: #fff;
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            text-align: center;
+            z-index: 100;
+            display: block;
+        }
+
+            #info a, .button {
+                color: #f00;
+                font-weight: bold;
+                text-decoration: underline;
+                cursor: pointer;
+            }
+    </style>
+</head>
+<body>
+    <script src="js/Three.js"></script>
+    <script src="js/loaders/MTLLoader.js"></script>
+    <script src="js/loaders/OBJLoader.js"></script>
+    <script src="js/loaders/OBJMTLLoader.js"></script>
+
+    <script>
+        var container, stats;
+        var camera, scene, renderer;
+
+        var mouseX = 0, mouseY = 0;
+        var windowHalfX = window.innerWidth / 2;
+        var windowHalfY = window.innerHeight / 2;
+
+        init();
+        animate();
+
+        function init() {
+
+            container = document.createElement('div');
+            document.body.appendChild(container);
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
+            camera.position.z = 10;
+            camera.position.y = 10;
+            camera.position.x = 2;
+
+            // scene
+            scene = new THREE.Scene();
+            var ambient = new THREE.AmbientLight(0x101010);
+            scene.add(ambient);
+            var directionalLight = new THREE.DirectionalLight(0xffeedd);
+            directionalLight.position.set(0.5, 2, 1).normalize();
+            scene.add(directionalLight);
+
+            // model - adding everything to this?
+            board = new THREE.Object3D();
+
+            var loader = new THREE.OBJMTLLoader();
+            loader.load('models/boardBlocks.obj', 'models/boardBlocks.mtl', function (object) {
+                object.traverse(function (child) {
+                    if (child instanceof THREE.Mesh)
+                        child.material.color.setRGB(1, 1, 1);
+                });
+                board.add(object);
+
+                // black spaces
+                var cloned = cloneObj(object);
+                cloned.traverse(function (child) {
+                    if (child instanceof THREE.Mesh)
+                        child.material.color.setRGB(0, 0, 0);
+                });
+                cloned.rotateY(Math.PI / 2);    // 90 degrees
+                board.add(cloned);
+            });
+
+            scene.add(board);
+            renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+
+            window.addEventListener('resize', onWindowResize, false);
+
+        }
+
+        function cloneObj(obj) {
+            var i, cpy = new THREE.Object3D();
+            for (var i in obj.children) {
+                cpy.add(
+                    new THREE.Mesh(obj.children[i].geometry)
+                );
+            }
+            return cpy;
+        }
+
+        function cloneObjMtl(objmtl) {
+            var i, cpy = new THREE.Object3D();
+            for (var i in objmtl.children) {
+                cpy.add(
+                    new THREE.Mesh(objmtl.children[i].geometry,
+                    objmtl.children[i].material)
+                );
+            }
+            return cpy;
+        }
+
+        function onWindowResize() {
+            windowHalfX = window.innerWidth / 2;
+            windowHalfY = window.innerHeight / 2;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            render();
+        }
+
+        function render() {
+            camera.lookAt(scene.position);
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
