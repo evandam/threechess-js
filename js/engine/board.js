@@ -70,17 +70,17 @@ Board.prototype.loadPieces = function( ) {
         piece.scale.y = 0.50;
         piece.scale.z = 0.50;
     };
-    
+
     /*
      * Pawn-specific loading functions
      */
-    var whiteInitial = function(piece) {
+    var whiteInitial = function( piece ) {
         piece.translateX(-3.5);
         piece.translateY(1);
         piece.translateZ(2.5);
     };
-    
-    var blackInitial = function(piece) {
+
+    var blackInitial = function( piece ) {
         piece.translateX(-3.5);
         piece.translateY(1);
         piece.translateZ(-2.5);
@@ -89,54 +89,90 @@ Board.prototype.loadPieces = function( ) {
     /*
      * The actual object load method for creating the pawns
      */
-    var loadPawn = function( setcolor, startpos) {
+    var loadPawns = function( setcolor, startpos ) {
         // Load in the pieces, starting with the pawns
         loader.load('models/pawn.obj', 'models/pawn.mtl', function( object ) {
             // Make the pawns
-            var piece = object;
+            var pawn = object;
 
             // Set up the first one
-            setcolor(piece);
-            scalePiece(piece);
+            setcolor(pawn);
+            scalePiece(pawn);
 
             // Move into position
-            startpos(piece);
+            startpos(pawn);
 
             // Add to the board
-            board.add(piece);
+            board.add(pawn);
 
             // Place the rest
             for ( var i = 1; i < 8; ++i ) {
                 // Clone it
-                piece = piece.clone();
-
-                // Make it white
-                setcolor(piece);
-
-                // Scale it
-                scalePiece(piece);
+                pawn = pawn.clone();
 
                 // Move it into place
                 // Should probably be replaced by a call to the moveTo function
                 // whenever that is created
-                piece.translateX(1);
+                pawn.translateX(1);
 
                 // Add it to the board
-                board.add(piece);
+                board.add(pawn);
             }
+        });
+    };
+
+    /*
+     * Generate the pawn sets These are done separately because the clone
+     * methods were not properly transferring mesh colors & lighting
+     */
+    loadPawns(setWhite, whiteInitial);
+    loadPawns(setBlack, blackInitial);
+
+    /*
+     * Rook loading functions
+     */
+    whiteInitial = function( piece ) {
+        piece.translateX(-3.5);
+        piece.translateY(1);
+        piece.translateZ(3.5);
+    };
+
+    blackInitial = function( piece ) {
+        piece.translateX(-3.5);
+        piece.translateY(1);
+        piece.translateZ(-3.5);
+    };
+
+    /*
+     * Object load method for the Rooks
+     */
+    var loadRooks = function( setcolor, startpos ) {
+        loader.load('models/rook.obj', 'models/rook.mtl', function( object ) {
+            var rook = object;
+            //Color and put in first position
+            setcolor(rook);
+            startpos(rook);
+            
+            //Scale it appropriately
+            scalePiece(rook);
+            
+            //Add it to the board
+            board.add(rook);
+            
+            //Make the other rook
+            rook = rook.clone();
+            //Move to other side of board
+            rook.translateX(7);
+            //Add it to the board
+            board.add(rook);
         });
     };
     
     /*
-     * Generate the pawn sets
-     * These are done separately because the clone methods were not properly 
-     * transferring mesh colors & lighting
+     * Generate the rooks
      */
-    loadPawn(setWhite, whiteInitial);
-    loadPawn(setBlack, blackInitial);
+    loadRooks(setWhite, whiteInitial);
+    loadRooks(setBlack, blackInitial);
     
-    /*
-     * Rook loading functions 
-     */
 
 };
