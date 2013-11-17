@@ -178,13 +178,9 @@ Board.prototype.loadPieces = function( ) {
      * Knight loading functions
      */
     whiteInitial = function( piece ) {
+        piece.translateX(-2.5);
         piece.translateY(1);
         piece.translateZ(3.5);
-        
-        //Knights on the white side need to be rotated 180 degrees
-        piece.rotateY(Math.PI);
-        //Then moved into place on the X-axis
-        piece.translateX(-2.5);
     };
 
     blackInitial = function( piece ) {
@@ -193,34 +189,112 @@ Board.prototype.loadPieces = function( ) {
         piece.translateZ(-3.5);
     };
 
+    var whiteRotation = function( piece ) {
+        piece.rotateY(Math.PI);
+    };
+
+    var resetWhiteRot = function( piece ) {
+        piece.rotateY(-Math.PI);
+    };
+
     /*
      * Object load function for the knights
      */
-    var loadKnights = function( setcolor, startpos ) {
+    var loadKnights = function( setcolor, startpos, dorotation, resetrotation ) {
         loader.load('models/knight.obj', 'models/knight.mtl',
                 function( object ) {
                     var knight = object;
-                    
-                    //You know the drill
+
+                    // You know the drill
                     setcolor(knight);
                     startpos(knight);
                     scalePiece(knight);
                     board.add(knight);
-                    
-                    //and the second
+
+                    if ( dorotation )
+                        dorotation(knight);
+
+                    // and the second
                     knight = knight.clone();
+                    // Clear the rotation for movement
+                    if ( resetrotation )
+                        resetrotation(knight);
+                    // Move into position
                     knight.translateX(5);
+                    // Do the rotation
+                    if ( dorotation )
+                        dorotation(knight);
                     board.add(knight);
                 });
     };
-    
+
     /*
      * Generate the knights
      */
-    loadKnights(setWhite, whiteInitial);
+    loadKnights(setWhite, whiteInitial, whiteRotation, resetWhiteRot);
     loadKnights(setBlack, blackInitial);
-    
+
     /*
      * Bishop loading functions
      */
+    whiteInitial = function( piece ) {
+        piece.translateX(-1.5);
+        piece.translateY(1);
+        piece.translateZ(3.5);
+    };
+
+    blackInitial = function( piece ) {
+        piece.translateX(-1.5);
+        piece.translateY(1);
+        piece.translateZ(-3.5);
+    };
+
+    whiteRotation = function( piece ) {
+        // Rotate the pieces by 90 degress so they face the right way
+        piece.rotateY(Math.PI / 2);
+    };
+
+    resetWhiteRot = function( piece ) {
+        piece.rotateY(-( Math.PI / 2 ));
+    };
+
+    var blackRotation = function( piece ) {
+        // Rotate the pieces by 270 degress so they face the right way
+        piece.rotateY(Math.PI * 1.5);
+    };
+
+    var resetBlackRot = function( piece ) {
+        piece.rotateY(-( Math.PI * 1.5 ));
+    };
+
+    /*
+     * Object load function for the bishops
+     */
+    var loadBishops = function( setcolor, startpos, dorotation, resetrotation ) {
+        loader.load('models/bishop.obj', 'models/bishop.mtl',
+                function( object ) {
+                    var bishop = object;
+
+                    // You know the drill
+                    setcolor(bishop);
+                    startpos(bishop);
+                    scalePiece(bishop);
+                    dorotation(bishop);
+
+                    board.add(bishop);
+
+                    // and the second
+                    bishop = bishop.clone();
+                    resetrotation(bishop);
+                    bishop.translateX(3);
+                    dorotation(bishop);
+                    board.add(bishop);
+                });
+    };
+
+    /*
+     * Generate the bishops
+     */
+    loadBishops(setWhite, whiteInitial, whiteRotation, resetWhiteRot);
+    loadBishops(setBlack, blackInitial, blackRotation, resetBlackRot);
 };
