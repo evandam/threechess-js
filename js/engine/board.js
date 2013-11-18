@@ -37,8 +37,21 @@ function Board( scene, afterload ) {
         cloned.rotateY(Math.PI / 2); // 90 degrees
         board.add(cloned);
 
-        // Now that the board layout is done, put the pieces on it
-        self.loadPieces(afterload);
+        // Now load in the frame
+        loader.load('models/boardFrame.obj', 'models/boardFrame.mtl', function(
+                object ) {
+            // Prevents overlap with the tiles
+            object.translateY(-0.01);
+            // Make it a kind of wood color for now
+            // Dark wood: 133;94;66 RGB
+            object.traverse(function( child ) {
+                if ( child instanceof THREE.Mesh )
+                    child.material.color.setRGB(133 / 256, 94 / 256, 66 / 256);
+            });
+            board.add(object);
+            // Now that the board layout is done, put the pieces on it
+            self.loadPieces(afterload);
+        });
     });
 
     // Add it to the passed-in scene
@@ -444,7 +457,7 @@ Board.prototype.loadPieces = function( afterload ) {
                 function( object ) {
                     var bishop = object;
                     var pos = [ ];
-                    
+
                     bishop.move = bMove;
                     bishop.rotate = dorotation;
                     bishop.resetRotation = resetrotation;
@@ -518,7 +531,7 @@ Board.prototype.loadPieces = function( afterload ) {
         loader.load('models/queen.obj', 'models/queen.mtl', function( object ) {
             var queen = object;
             var pos = [ ];
-            
+
             queen.move = move;
 
             // Only one king
@@ -566,7 +579,7 @@ Board.prototype.loadPieces = function( afterload ) {
         loader.load('models/king.obj', 'models/king.mtl', function( object ) {
             var king = object;
             var pos = [ ];
-            
+
             king.move = move;
 
             // Only one king
