@@ -36,6 +36,7 @@
     <script src="js/loaders/MTLLoader.js"></script>
     <script src="js/loaders/OBJLoader.js"></script>
     <script src="js/loaders/OBJMTLLoader.js"></script>
+    <script src="js/engine/particlefield.js"></script>
     <script src="js/engine/controller.js"></script>
     <script src="js/engine/board.js"></script>
 
@@ -68,7 +69,10 @@
             scene.add(directionalLight);
             
             //Get a new game controller, also builds the board
-            var controller = new Controller(scene);
+            controller = new Controller(scene);
+            
+            //test the particle field, to be replaced
+            //var partfield = new ParticleField('a1', 'b1', 0xFFFFFF, 0xFFFFFF, -1, controller.board.board);
 
             renderer = new THREE.WebGLRenderer();
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -115,6 +119,8 @@
         function render() {
             camera.lookAt(scene.position);
             renderer.render(scene, camera);
+            
+            controller.board.animate();
         }
     </script>
 </body>

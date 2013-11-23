@@ -601,3 +601,17 @@ Board.prototype.loadPieces = function( afterload ) {
     loadKing(setWhite, whiteInitial);
     loadKing(setBlack, blackInitial);
 };
+
+/**
+ * Executes any animations that need to happen for piece movement/misc. actions
+ */
+Board.prototype.animate = function( ) {
+    for ( var i = 0; i < this.board.children.length; ++i ) {
+
+        var object = this.board.children[i];
+
+        if ( object instanceof THREE.ParticleSystem ) {
+            object.update();
+        }
+    }
+};
