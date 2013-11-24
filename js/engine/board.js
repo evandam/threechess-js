@@ -21,18 +21,24 @@ function Board( scene, afterload ) {
 
     // Load in the Board data itself
     loader.load('models/boardBlocks.obj', 'models/boardBlocks.mtl', function(
-            object ) {
+            object) {
+        
+        var texture = THREE.ImageUtils.loadTexture("textures/marble1.jpg");
         object.traverse(function( child ) {
-            if ( child instanceof THREE.Mesh )
+            if (child instanceof THREE.Mesh) {
+                child.material.map = texture;
                 child.material.color.setRGB(1, 1, 1);
+            }
         });
         board.add(object);
 
         // black spaces
         var cloned = cloneObj(object);
         cloned.traverse(function( child ) {
-            if ( child instanceof THREE.Mesh )
-                child.material.color.setRGB(0, 0, 0);
+            if (child instanceof THREE.Mesh) {
+                child.material.map = texture;
+                child.material.color.setRGB(0.1, 0.1, 0.1);
+            }
         });
         cloned.rotateY(Math.PI / 2); // 90 degrees
         board.add(cloned);
@@ -44,9 +50,15 @@ function Board( scene, afterload ) {
             object.translateY(-0.01);
             // Make it a kind of wood color for now
             // Dark wood: 133;94;66 RGB
-            object.traverse(function( child ) {
-                if ( child instanceof THREE.Mesh )
-                    child.material.color.setRGB(133 / 256, 94 / 256, 66 / 256);
+
+            // load a texture, set wrap mode to repeat
+            var texture = THREE.ImageUtils.loadTexture("textures/wood.jpg");
+
+            object.traverse(function (child) {
+                if (child instanceof THREE.Mesh) {
+                    //child.material.color.setRGB(133 / 256, 94 / 256, 66 / 256);
+                    child.material.map = texture;
+                }
             });
             board.add(object);
             // Now that the board layout is done, put the pieces on it
@@ -126,18 +138,23 @@ Board.prototype.loadPieces = function( afterload ) {
         if ( pieceCount == 32 )
             afterload();
     };
+    var texture = THREE.ImageUtils.loadTexture("textures/marble.jpg");
 
     var setWhite = function( object ) {
         object.traverse(function( child ) {
-            if ( child instanceof THREE.Mesh )
+            if (child instanceof THREE.Mesh) {
+                child.material.map = texture;
                 child.material.color.setRGB(1, 1, 1);
+            }
         });
     };
 
     var setBlack = function( object ) {
         object.traverse(function( child ) {
-            if ( child instanceof THREE.Mesh )
+            if (child instanceof THREE.Mesh) {
+                child.material.map = texture;
                 child.material.color.setRGB(.10, .10, .10);
+            }
         });
     };
 
