@@ -67,6 +67,10 @@
             var directionalLight = new THREE.DirectionalLight(0xffeedd);
             directionalLight.position.set(0.5, 2, 1).normalize();
             scene.add(directionalLight);
+            // add another light
+            var newLight = new THREE.DirectionalLight(0xffffff);
+            newLight.position.set(-2, -2, 0).normalize();
+            scene.add(newLight);
             
             //Get a new game controller, also builds the board
             controller = new Controller(scene);
@@ -76,7 +80,7 @@
             container.appendChild(renderer.domElement);
 
             window.addEventListener('resize', onWindowResize, false);
-
+            document.addEventListener('mousemove', onDocumentMouseMove, false);
         }
 
         function cloneObj(obj) {
@@ -108,12 +112,23 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
+        function onDocumentMouseMove() {
+            mouseX = (event.clientX - windowHalfX) / 2;
+            mouseY = (event.clientY - windowHalfY) / 2;
+        }
+
         function animate() {
             requestAnimationFrame(animate);
             render();
         }
 
         function render() {
+            var newX = camera.position.x + (mouseX - camera.position.x) * .05;
+            var newY = camera.position.y + (-mouseY - camera.position.y) * .05;
+            if (newX > -20 && newX < 20) 
+                camera.position.x = newX;
+            if(newY > -20 && newY < 20)
+                camera.position.y = newY;
             camera.lookAt(scene.position);
             renderer.render(scene, camera);
             

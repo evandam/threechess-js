@@ -28,7 +28,7 @@ function Board( scene, afterload ) {
     loader.load('models/boardBlocks.obj', 'models/boardBlocks.mtl', function(
             object) {
         
-        var texture = THREE.ImageUtils.loadTexture("textures/marble1.jpg");
+        var texture = THREE.ImageUtils.loadTexture("textures/marble.jpg");
         object.traverse(function( child ) {
             if (child instanceof THREE.Mesh) {
                 child.material.map = texture;
@@ -250,7 +250,8 @@ Board.prototype.loadPieces = function( afterload ) {
         object.traverse(function( child ) {
             if (child instanceof THREE.Mesh) {
                 child.material.map = texture;
-                child.material.color.setRGB(1, 1, 1);
+                child.material.color.setRGB(0.9, 0.9, 0.9);
+                child.material.shininess = 100;
             }
         });
     };
@@ -265,9 +266,9 @@ Board.prototype.loadPieces = function( afterload ) {
     };
 
     var scalePiece = function( piece ) {
-        piece.scale.x = 0.50;
-        piece.scale.y = 0.50;
-        piece.scale.z = 0.50;
+        piece.scale.x = 0.40;
+        piece.scale.y = 0.40;
+        piece.scale.z = 0.40;
     };
 
     var map = [ "a", "b", "c", "d", "e", "f", "g", "h" ];
