@@ -43,8 +43,11 @@
     <script>
         var container, stats;
         var camera, scene, renderer;
-
+        
+        // control camera movement by clicking and dragging
         var mouseX = 0, mouseY = 0;
+        var theta = 0, phi = 0;
+        var isClicked = false; var radius = 14;
         var windowHalfX = window.innerWidth / 2;
         var windowHalfY = window.innerHeight / 2;
 
@@ -81,6 +84,21 @@
 
             window.addEventListener('resize', onWindowResize, false);
             document.addEventListener('mousemove', onDocumentMouseMove, false);
+            document.addEventListener('mousedown', function () { isClicked = true; }, false);
+            document.addEventListener('mouseup', function () { isClicked = false; }, false);
+            document.addEventListener('mousewheel', function (evt) {
+                if (evt.wheelDeltaY < 0)
+                    radius += 0.5;
+                else
+                    radius -= 0.5;
+                console.log(radius);
+                camera.position.x = radius * Math.sin(theta * Math.PI / 360)
+                                    * Math.cos(phi * Math.PI / 360);
+                camera.position.y = radius * Math.sin(phi * Math.PI / 360);
+                camera.position.z = radius * Math.cos(theta * Math.PI / 360)
+                                    * Math.cos(phi * Math.PI / 360);
+                camera.updateMatrix();
+            }, false);
         }
 
         function cloneObj(obj) {
@@ -123,12 +141,23 @@
         }
 
         function render() {
-            var newX = camera.position.x + (mouseX - camera.position.x) * .05;
-            var newY = camera.position.y + (-mouseY - camera.position.y) * .05;
-            if (newX > -20 && newX < 20) 
-                camera.position.x = newX;
-            if(newY > -20 && newY < 20)
-                camera.position.y = newY;
+            if (isClicked) {
+
+                theta = -((mouseX - camera.position.x))
+                        + 45;
+                phi = ((-mouseY - camera.position.y))
+                      + 45;
+
+                phi = Math.min(180, Math.max(0, phi));
+
+                camera.position.x = radius * Math.sin(theta * Math.PI / 360)
+                                    * Math.cos(phi * Math.PI / 360);
+                camera.position.y = radius * Math.sin(phi * Math.PI / 360);
+                camera.position.z = radius * Math.cos(theta * Math.PI / 360)
+                                    * Math.cos(phi * Math.PI / 360);
+                camera.updateMatrix();
+
+            }
             camera.lookAt(scene.position);
             renderer.render(scene, camera);
             
