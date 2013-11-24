@@ -26,18 +26,24 @@ function Board( scene, afterload ) {
 
     // Load in the Board data itself
     loader.load('models/boardBlocks.obj', 'models/boardBlocks.mtl', function(
-            object ) {
+            object) {
+        
+        var texture = THREE.ImageUtils.loadTexture("textures/marble.jpg");
         object.traverse(function( child ) {
-            if ( child instanceof THREE.Mesh )
+            if (child instanceof THREE.Mesh) {
+                child.material.map = texture;
                 child.material.color.setRGB(1, 1, 1);
+            }
         });
         board.add(object);
 
         // black spaces
         var cloned = cloneObj(object);
         cloned.traverse(function( child ) {
-            if ( child instanceof THREE.Mesh )
-                child.material.color.setRGB(0, 0, 0);
+            if (child instanceof THREE.Mesh) {
+                child.material.map = texture;
+                child.material.color.setRGB(0.1, 0.1, 0.1);
+            }
         });
         cloned.rotateY(Math.PI / 2); // 90 degrees
         board.add(cloned);
@@ -49,9 +55,15 @@ function Board( scene, afterload ) {
             object.translateY(-0.01);
             // Make it a kind of wood color for now
             // Dark wood: 133;94;66 RGB
-            object.traverse(function( child ) {
-                if ( child instanceof THREE.Mesh )
-                    child.material.color.setRGB(133 / 256, 94 / 256, 66 / 256);
+
+            // load a texture, set wrap mode to repeat
+            var texture = THREE.ImageUtils.loadTexture("textures/wood.jpg");
+
+            object.traverse(function (child) {
+                if (child instanceof THREE.Mesh) {
+                    //child.material.color.setRGB(133 / 256, 94 / 256, 66 / 256);
+                    child.material.map = texture;
+                }
             });
             board.add(object);
             // Now that the board layout is done, put the pieces on it
@@ -202,7 +214,7 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
             endcolor = 0xFF0000;
         }
         // Make the pretty particle effects
-        new ParticleField(start, end, 0x0, endcolor, -1, this.board, inbetween,
+        new ParticleField(start, end, 0x0, endcolor, this.board, inbetween,
                 nxtMove);
         return true;
     }
@@ -232,25 +244,31 @@ Board.prototype.loadPieces = function( afterload ) {
         if ( pieceCount == 32 )
             afterload();
     };
+    var texture = THREE.ImageUtils.loadTexture("textures/marble.jpg");
 
     var setWhite = function( object ) {
         object.traverse(function( child ) {
-            if ( child instanceof THREE.Mesh )
-                child.material.color.setRGB(1, 1, 1);
+            if (child instanceof THREE.Mesh) {
+                child.material.map = texture;
+                child.material.color.setRGB(0.9, 0.9, 0.9);
+                child.material.shininess = 100;
+            }
         });
     };
 
     var setBlack = function( object ) {
         object.traverse(function( child ) {
-            if ( child instanceof THREE.Mesh )
+            if (child instanceof THREE.Mesh) {
+                child.material.map = texture;
                 child.material.color.setRGB(.10, .10, .10);
+            }
         });
     };
 
     var scalePiece = function( piece ) {
-        piece.scale.x = 0.50;
-        piece.scale.y = 0.50;
-        piece.scale.z = 0.50;
+        piece.scale.x = 0.40;
+        piece.scale.y = 0.40;
+        piece.scale.z = 0.40;
     };
 
     var map = [ "a", "b", "c", "d", "e", "f", "g", "h" ];

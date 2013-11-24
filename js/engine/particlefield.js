@@ -9,19 +9,19 @@
  *            The hexidecimal color to use for the particles in the start square
  * @param color_end
  *            Same as above but for the destination square
- * @param duration
- *            The time in ms to leave the system running
  * @param scene
  *            The parent rendering node to attach to
  * @param on_complete
  *            The function to call after the animation completes
  */
-function ParticleField( from, to, color_start, color_end, duration, scene,
-        s1_complete, s2_complete ) {
+function ParticleField( from, to, color_start, color_end, scene, s1_complete,
+        s2_complete ) {
 
     var self = this;
     // For removing objects
     this.parent = scene;
+    // Time to wait before executing scene end in ms
+    this.endWait = 250;
 
     this.s1_complete = s1_complete;
     this.s2_complete = s2_complete;
@@ -44,18 +44,17 @@ function ParticleField( from, to, color_start, color_end, duration, scene,
     // Number of particles to fill in the square
     this.PARTICLE_COUNT = 5000;
     // This is small enough to look nice
-    this.PARTICLE_SIZE = .01;
-
-    // Used so that no seizures result from debug code
-    // this.last_update = Date.now();
+    this.PARTICLE_SIZE = .1;
 
     // Distance to edges
-    this.EDGE_DISTS = [ 2, 4, 2 ];
+    this.EDGE_DISTS = [ 8, 16, 8 ];
+    // Bounding box of piece
+    this.BBOX_DISTS = [ 1, 2, 1 ];
 
     // Lifts the center of the field along the y-axis so it's not inside the
     // board
     this.y_base = 1 + .5;
-    this.y_V_MULTIPLIER = 2;
+    this.y_V_MULTIPLIER = this.EDGE_DISTS[1] / this.EDGE_DISTS[0];
 
     // The particle field for the start square
     this.pfield1 = new THREE.Geometry();
@@ -95,9 +94,10 @@ function ParticleField( from, to, color_start, color_end, duration, scene,
         self.update();
     };
 
-    // TODO Set up logic to make particles flow inward
     scene.add(this.psys1);
-    // TODO Set up timeout function to remove field from scene
+    setTimeout(function( ) {
+        self.update();
+    }, this.updateRate);
 }
 
 /**
@@ -159,40 +159,46 @@ ParticleField.prototype.genParticles = function( x_center, z_center, pfield,
     var p_xyz = [ ];
     // The destination positions of the particles
     var dest_xyz = [ ];
-    var edge, particle;
+    var particle;
+
+    var theta, phi;
+    var theta2, phi2;
 
     var velocities = [ ];
-    var signs = [ ];
 
     // Make the particles
     for ( var p = 0; p < this.PARTICLE_COUNT; ++p ) {
+
+        theta = 2 * Math.PI * Math.random();
+        phi = 2 * Math.asin(2 * Math.random() - 1);
+        theta2 = 2 * Math.PI * Math.random();
+        phi2 = 2 * Math.asin(2 * Math.random() - 1);
+
         // Start field radiates from outside in
-        p_xyz[0] = Math.random() * this.EDGE_DISTS[0];
-        p_xyz[1] = Math.random() * this.EDGE_DISTS[1];
-        p_xyz[2] = Math.random() * this.EDGE_DISTS[2];
+        // Generating points on a unit circle
+        p_xyz[0] = Math.cos(theta) * Math.cos(phi);
+        p_xyz[1] = Math.sin(theta) * Math.cos(phi);
+        p_xyz[2] = Math.sin(phi);
+        // Generate destination points
+        dest_xyz[0] = Math.cos(theta2) * Math.cos(phi2);
+        dest_xyz[1] = Math.sin(theta2) * Math.cos(phi2);
+        dest_xyz[2] = Math.sin(phi2);
 
-        // Pick the edge to start from
-        edge = Math.round(Math.random() * 3);
-        p_xyz[edge] = this.EDGE_DISTS[edge];
+        // Then stretching them along the axes so the match the elipse
+        p_xyz[0] *= this.EDGE_DISTS[0];
+        p_xyz[1] *= this.EDGE_DISTS[1];
+        p_xyz[2] *= this.EDGE_DISTS[2];
 
-        // Randomize which side of the axis it's on
+        dest_xyz[0] *= this.BBOX_DISTS[0];
+        dest_xyz[1] *= this.BBOX_DISTS[1];
+        dest_xyz[2] *= this.BBOX_DISTS[2];
+
         for ( var i = 0; i < 3; ++i ) {
-            // Only store the hundredth's place
-            p_xyz[i] = Math.round(p_xyz[i] * 100) / 100;
-            if ( Math.random() < .5 ) {
-                // Go in the -axis direction from the center
-                p_xyz[i] = -p_xyz[i];
-                // This ratio makes sure all particles animate smoothly from
-                // start to finish and don't form bands
-                velocities[i] = this.VELOCITY * p_xyz[i] / this.EDGE_DISTS[i];
-                // In the - direction, so move in the + direction
-                signs[i] = 1;
-            }
-            else {
-                p_xyz[i] = p_xyz[i];
-                velocities[i] = -this.VELOCITY * p_xyz[i] / this.EDGE_DISTS[i];
-                signs[i] = -1;
-            }
+            // This ratio makes sure all particles animate smoothly from
+            // start to finish and don't form bands
+            // Negate the velocity so that it moves from start to dest
+            velocities[i] = -this.VELOCITY * Math.abs(dest_xyz[i] - p_xyz[i])
+                    / Math.abs(this.BBOX_DISTS[i] - this.EDGE_DISTS[i]);
         }
 
         // p_xyz is relative distance from center, convert to absolute
@@ -201,18 +207,20 @@ ParticleField.prototype.genParticles = function( x_center, z_center, pfield,
         p_xyz[1] += this.y_base;
         p_xyz[2] += z_center;
 
+        // Same for dest
+        dest_xyz[0] += x_center;
+        dest_xyz[1] += this.y_base;
+        dest_xyz[2] += z_center;
+
         if ( explode ) {
             // Moving from the center
             // Reverse direction
+            var temp = dest_xyz;
+            dest_xyz = p_xyz;
+            p_xyz = temp;
             for ( var i = 0; i < 3; ++i ) {
-                dest_xyz[i] = p_xyz[i];
                 velocities[i] *= -1;
-                signs[i] *= -1;
             }
-            p_xyz = [ x_center, this.y_base, z_center ];
-        }
-        else {
-            dest_xyz = [ x_center, this.y_base, z_center ];
         }
 
         // Set up the vector with the start position
@@ -221,9 +229,6 @@ ParticleField.prototype.genParticles = function( x_center, z_center, pfield,
         // Record velocity, make sure that y updates fast enough
         particle.velocity = new THREE.Vector3(velocities[0], velocities[1]
                 * this.y_V_MULTIPLIER, velocities[2]);
-
-        // Record the sign of the velocity for later computation simplicity
-        particle.signs = new THREE.Vector3(signs[0], signs[1], signs[2]);
 
         // Record the destination position
         particle.dests = new THREE.Vector3(dest_xyz[0], dest_xyz[1],
@@ -239,44 +244,79 @@ ParticleField.prototype.genParticles = function( x_center, z_center, pfield,
  */
 ParticleField.prototype.update = function( ) {
 
-    // Color randomizer from
-    // from http://www.paulirish.com/2009/random-hex-color-code-snippets/
-    // for debugging
-    // Only update 1/s
-    /*
-     * if ( Date.now() - 500 > this.last_update ) { this.last_update =
-     * Date.now(); this.pfield1_mat.color.setHex('0x' + Math.floor(Math.random() *
-     * 16777215).toString(16)); }
-     */
-
-    var p = this.PARTICLE_COUNT;
     var field = ( this.rendering1 ) ? this.pfield1 : this.pfield2;
 
     var part;
-    var complete = true;
-    // this.psys1.rotateOnAxis('y', .01);
+    var completed = true;
 
-    while ( --p ) {
+    // TODO Make this faster
+    for ( var p = 0; p < this.PARTICLE_COUNT; ++p ) {
         // Get a particle
         part = field.vertices[p];
-        // Stop moving when at center
-        part.velocity.x = Math.min(Math.abs(part.velocity.x), Math
-                .abs(part.dests.x - part.x));
-        part.velocity.y = Math.min(Math.abs(part.velocity.y), Math
-                .abs(part.dests.y - part.y));
-        part.velocity.z = Math.min(Math.abs(part.velocity.z), Math
-                .abs(part.dests.z - part.z));
-        // Reset the sign of the movement
-        part.velocity.multiplyVectors(part.velocity, part.signs);
+        // Stop moving when at dest, this updates velocity appropriately
+        if ( part.dests.x > part.x ) {
+            // Moving in positive x towards destination
+            if ( part.velocity.x < 0 )
+                part.velocity.x = -part.velocity.x;
+
+            part.velocity.x = Math.min(part.velocity.x,
+                    ( part.dests.x - part.x ));
+        }
+        else {
+            // Moving in negative x towards destination
+            // On the offchance the particle slides past the middle, change the
+            // velocity so the calculation behaves properly
+            if ( part.velocity.x > 0 )
+                part.velocity.x = -part.velocity.x;
+
+            part.velocity.x = Math.max(part.velocity.x,
+                    ( part.dests.x - part.x ));
+        }
+        // Handle y movement
+        if ( part.dests.y > part.y ) {
+            // Moving in positive y towards destination
+            if ( part.velocity.y < 0 )
+                part.velocity.y = -part.velocity.y;
+
+            part.velocity.y = Math.min(part.velocity.y,
+                    ( part.dests.y - part.y ));
+        }
+        else {
+            // Moving in negative y towards destination
+            if ( part.velocity.y > 0 )
+                part.velocity.y = -part.velocity.y;
+
+            part.velocity.y = Math.max(part.velocity.y,
+                    ( part.dests.y - part.y ));
+        }
+        // Handle z movement
+        if ( part.dests.z > part.z ) {
+            // Moving in positive z towards destination
+            if ( part.velocity.z < 0 )
+                part.velocity.z = -part.velocity.z;
+
+            part.velocity.z = Math.min(part.velocity.z,
+                    ( part.dests.z - part.z ));
+        }
+        else {
+            // Moving in negative z towards destination
+            if ( part.velocity.z > 0 )
+                part.velocity.z = -part.velocity.z;
+
+            part.velocity.z = Math.max(part.velocity.z,
+                    ( part.dests.z - part.z ));
+        }
+
         // Change position
         part.add(part.velocity);
 
         if ( !( part.velocity.x == 0 && part.velocity.y == 0 && part.velocity.z == 0 ) ) {
-            complete = false;
+            // A particle is in position
+            completed = false;
         }
     }
 
-    if ( complete ) {
+    if ( completed ) {
         if ( this.rendering1 ) {
             // Remove the first particle field
             this.parent.remove(this.psys1);
@@ -287,10 +327,13 @@ ParticleField.prototype.update = function( ) {
             this.s1_complete();
         }
         else {
-            this.parent.remove(this.psys2);
-            // Callback to indicate that animation has finished
-            this.s2_complete();
-        }
+            // Use callback to indicate that animation has finished
+            var self = this;
+            this.parent.remove(self.psys2);
 
+            setTimeout(function( ) {
+                self.s2_complete();
+            }, this.endWait);
+        }
     }
 };
