@@ -10,9 +10,14 @@ function Board( scene, afterload ) {
     // No generated pieces yet
     this.pieces = { };
 
+    this.moveQueue = [ ];
+    // True if the board is executing a move sequence
+    this.working = false;
+
     // The 3D board object, Board intial load code by @evan
     this.board = new THREE.Object3D();
     var board = this.board;
+    this.CASTLING_MOVES = [ 'e8c8', 'e8g8', 'e1g1', 'e1c1' ];
     // Closure for adding pieces to the board
     var self = this;
 
@@ -71,16 +76,96 @@ function Board( scene, afterload ) {
 };
 
 /**
+ * Queues up a move for the board
+ * 
+ * @param piece
+ *            The piece code of the move
+ * @param move
+ *            The move set string e.g. "a7b2"
+ */
+Board.prototype.queueMove = function( piece, move ) {
+    this.moveQueue.push(
+    {
+        'p' : piece,
+        'm' : move
+    });
+    if ( !this.working ) {
+        this.working = true;
+        var self = this;
+        // Sort of spin off a thread, this isn't the "right" way to do it with
+        // web-workers & etc. but it's good enough for now
+        setTimeout(function( ) {
+            self.executeMove();
+        }, 0);
+    }
+};
+
+/**
+ * Runs through the move queue
+ */
+Board.prototype.executeMove = function( ) {
+    if ( this.moveQueue.length > 0 ) {
+        // Dequeue the move
+        var move = this.moveQueue.shift();
+        var piece = move['p'];
+        move = move['m'];
+
+        // Check for castling
+        if ( piece == "K" && ( this.CASTLING_MOVES.indexOf(move) != -1 ) ) {
+            // Castling
+            var s = move.slice(0, 2);
+            var e = move.slice(2);
+
+            var self = this;
+
+            setTimeout(function( ) {
+                // Moving the king
+                self.movePiece(s, e, true);
+            }, 0);
+
+            // Moving the rook
+            if ( e[0] == 'c' )
+                // Queenside rook @a# to d#, e[1] is column #
+                this.movePiece('a' + e[1], 'd' + e[1]);
+            else
+                // Kingside rook @h# to f#
+                this.movePiece('h' + e[1], 'f' + e[1]);
+        }
+        else {
+            // Cut into first two/last two characters of move string and execute
+            if ( !this.movePiece(move.slice(0, 2), move.slice(2)) ) {
+                console.log("move failed: " + piece + move);
+            }
+        }
+    }
+    else {
+        // Queue is empty, so not working
+        this.working = false;
+    }
+};
+
+/**
  * Moves a piece from a position on the board to a new position
  * 
  * @param start
  *            The start position of the piece in the form "a7" etc.
  * @param end
  *            The end position of the piece
+ * @param stop_after
+ *            Indicates if the next move waiting after this one should be
+ *            executed. Used for castling
  */
-Board.prototype.movePiece = function( start, end ) {
+Board.prototype.movePiece = function( start, end, stop_after ) {
 
     if ( start in this.pieces ) {
+        var self = this;
+
+        // Animation complete callback function
+        var nxtMove = function( ) {
+            if ( !stop_after )
+                // Do the next move after the animation completes
+                self.executeMove();
+        };
 
         // Map of chars to numbers for get dy
         // maybe could be cleaned up later
@@ -106,16 +191,37 @@ Board.prototype.movePiece = function( start, end ) {
 
         // Get the piece from the piece map
         var piece = this.pieces[start];
-        piece.move(getDX(start[0], end[0]), getDZ(start[1], end[1]));
-        // TODO Handle captures/pieces landing on same square
-        // Remove the old piece @ old position
-        delete this.pieces[start];
-        // Put it in the new position
-        this.pieces[end] = piece;
+        // Capturing if dest is already occupied
+        var capturing = ( end in self.pieces );
+
+        // Function to execute after first animation completes
+        var inbetween = function( ) {
+            if ( capturing ) {
+                // Remove the renderable object
+                self.board.remove(self.pieces[end]);
+                delete self.pieces[end];
+            }
+
+            piece.move(getDX(start[0], end[0]), getDZ(start[1], end[1]));
+            // Remove the old piece @ old position
+            delete self.pieces[start];
+            // Put it in the new position
+            self.pieces[end] = piece;
+        };
+
+        var endcolor = 0xFFFFFF;
+        if ( capturing ) {
+            endcolor = 0xFF0000;
+        }
+        // Make the pretty particle effects
+        new ParticleField(start, end, 0x0, endcolor, -1, this.board, inbetween,
+                nxtMove);
+        return true;
     }
     else {
         console.log("No piece @ " + start);
         console.log(this.pieces);
+        return false;
     }
 };
 
@@ -213,6 +319,7 @@ Board.prototype.loadPieces = function( afterload ) {
             startpos(pawn, pos);
             // Move function for later
             pawn.move = simpleMove;
+            pawn.name = "P";
 
             // Add to the board
             board.add(pawn);
@@ -226,6 +333,7 @@ Board.prototype.loadPieces = function( afterload ) {
                 // Clone it
                 pawn = pawn.clone();
                 pawn.move = move;
+                pawn.name = "P";
 
                 // Move it into place
                 // Should probably be replaced by a call to the moveTo function
@@ -277,6 +385,8 @@ Board.prototype.loadPieces = function( afterload ) {
         loader.load('models/rook.obj', 'models/rook.mtl', function( object ) {
             var rook = object;
             rook.move = simpleMove;
+            rook.name = "R";
+
             var pos = [ ];
 
             // Color and put in first position
@@ -294,6 +404,7 @@ Board.prototype.loadPieces = function( afterload ) {
             // Make the other rook
             rook = rook.clone();
             rook.move = move;
+            rook.name = "R";
             // Move to other side of board
             rook.translateX(7);
             // h1 or h8
@@ -372,6 +483,7 @@ Board.prototype.loadPieces = function( afterload ) {
                     var knight = object;
                     var pos = [ ];
                     knight.move = kMove;
+                    knight.name = "N";
                     knight.rotate = dorotation;
                     knight.resetRotation = resetrotation;
 
@@ -389,6 +501,7 @@ Board.prototype.loadPieces = function( afterload ) {
                     // and the second
                     knight = knight.clone();
                     knight.move = kMove;
+                    knight.name = "N"
                     knight.rotate = dorotation;
                     knight.resetRotation = resetrotation;
 
@@ -476,6 +589,7 @@ Board.prototype.loadPieces = function( afterload ) {
                     var pos = [ ];
 
                     bishop.move = bMove;
+                    bishop.name = "B";
                     bishop.rotate = dorotation;
                     bishop.resetRotation = resetrotation;
 
@@ -492,6 +606,7 @@ Board.prototype.loadPieces = function( afterload ) {
                     // and the second
                     bishop = bishop.clone();
                     bishop.move = bMove;
+                    bishop.name = "B";
                     bishop.rotate = dorotation;
                     bishop.resetRotation = resetrotation;
 
@@ -550,6 +665,7 @@ Board.prototype.loadPieces = function( afterload ) {
             var pos = [ ];
 
             queen.move = move;
+            queen.name = "Q";
 
             // Only one king
             setcolor(queen);
@@ -598,6 +714,7 @@ Board.prototype.loadPieces = function( afterload ) {
             var pos = [ ];
 
             king.move = move;
+            king.name = "K";
 
             // Only one king
             setcolor(king);

@@ -28,34 +28,23 @@ Controller.prototype.connectTo = function( url ) {
     }
     else {
         // TODO Set up debug interactions
-        // Check some basic movement of pawns
-        // white forward 1
-        this.board.movePiece('a2', 'a3');
-        this.board.movePiece('d2', 'd3');
-        // white diagonal
-        this.board.movePiece('b2', 'c3');
-        // black forward 2
-        this.board.movePiece('d7', 'd5');
-        //Then rooks
-        //white/black forward 3
-        this.board.movePiece('a1', 'a4');
-        this.board.movePiece('h8', 'h4');
-        //Then knights, white
-        this.board.movePiece('g1', 'h3');
-        this.board.movePiece('b1', 'd2');
-        //and black
-        this.board.movePiece('g8', 'f6');
-        //Then bishop, 2 diagonal white/black
-        this.board.movePiece('c1', 'e3');
-        this.board.movePiece('f8', 'd6');
-        //Then queen
-        this.board.movePiece('d1', 'a1');
-        this.board.movePiece('d8', 'h8');
-        //Reverse it to check that we're updating the map
-        this.board.movePiece('a1', 'b1');
-        this.board.movePiece('h8', 'g8');
-        //Then king
-        this.board.movePiece('e1', 'd1');
-        this.board.movePiece('e8', 'd8');
+        // Run the example game
+        var moves = [ "Pe2e4", "Pd7d6", "Pd2d4", "Ng8f6", "Nb1c3", "Pg7g6",
+                "Bc1e3", "Bf8g7", "Qd1d2", "Pc7c6", "Pf2f3", "Pb7b5", "Ng1e2",
+                "Nb8d7", "Be3h6", "Bg7h6", "Qd2h6", "Bc8b7", "Pa2a3", "Pe7e5",
+                "Ke1c1", "Qd8e7", "Kc1b1", "Pa7a6", "Ne2c1", "Ke8c8", "Nc1b3",
+                "Pe5d4", "Rd1d4", "Pc6c5", "Rd4d1", "Nd7b6", "Pg2g3", "Kc8b8",
+                "Nb3a5", "Bb7a8", "Bf1h3", "Pd6d5", "Qh6f4", "Kb8a7", "Rh1e1",
+                "Pd5d4", "Nc3d5", "Nb6d5", "Pe4d5", "Qe7d6", "Rd1d4", "Pc5d4",
+                "Re1e7", "Ka7b6", "Qf4d4", "Kb6a5", "Pb2b4", "Ka5a4", "Qd4c3",
+                "Qd6d5", "Re7a7", "Ba8b7", "Ra7b7", "Qd5c4", "Qc3f6", "Ka4a3",
+                "Qf6a6", "Ka3b4", "Pc2c3", "Kb4c3", "Qa6a1", "Kc3d2", "Qa1b2",
+                "Kd2d1", "Bh3f1", "Rd8d2", "Rb7d7", "Rd2d7", "Bf1c4", "Pb5c4",
+                "Qb2h8", "Rd7d3", "Qh8a8", "Pc4c3", "Qa8a4", "Kd1e1", "Pf3f4",
+                "Pf7f5", "Kb1c1", "Rd3d2", "Qa4a7" ];
+
+        for ( var m = 0; m < moves.length; ++m ) {
+            this.board.queueMove(moves[m][0], moves[m].slice(1));
+        }
     }
 };
