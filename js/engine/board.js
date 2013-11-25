@@ -10,6 +10,9 @@ function Board( scene, afterload ) {
     // No generated pieces yet
     this.pieces = { };
 
+    this.boardFrame = null;
+    this.boardSquares = [];
+
     this.moveQueue = [ ];
     // True if the board is executing a move sequence
     this.working = false;
@@ -27,8 +30,10 @@ function Board( scene, afterload ) {
     // Load in the Board data itself
     loader.load('models/boardBlocks.obj', 'models/boardBlocks.mtl', function(
             object ) {
-
+        
         var texture = THREE.ImageUtils.loadTexture("textures/marble.jpg");
+        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(4, 4);
         object.traverse(function( child ) {
             if ( child instanceof THREE.Mesh ) {
                 child.material.map = texture;
@@ -36,6 +41,7 @@ function Board( scene, afterload ) {
             }
         });
         board.add(object);
+        self.boardSquares.push(object);
 
         // black spaces
         var cloned = cloneObj(object);
@@ -47,6 +53,7 @@ function Board( scene, afterload ) {
         });
         cloned.rotateY(Math.PI / 2); // 90 degrees
         board.add(cloned);
+        self.boardSquares.push(cloned);
 
         // Now load in the frame
         loader.load('models/boardFrame.obj', 'models/boardFrame.mtl', function(
@@ -58,7 +65,8 @@ function Board( scene, afterload ) {
 
             // load a texture, set wrap mode to repeat
             var texture = THREE.ImageUtils.loadTexture("textures/wood.jpg");
-
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(4, 4);
             object.traverse(function( child ) {
                 if ( child instanceof THREE.Mesh ) {
                     // child.material.color.setRGB(133 / 256, 94 / 256, 66 /
@@ -67,6 +75,7 @@ function Board( scene, afterload ) {
                 }
             });
             board.add(object);
+            self.boardFrame = object;
             // Now that the board layout is done, put the pieces on it
             self.loadPieces(afterload);
         });
@@ -74,6 +83,7 @@ function Board( scene, afterload ) {
 
     // Add it to the passed-in scene
     scene.add(this.board);
+    
 };
 
 /**
@@ -324,13 +334,13 @@ Board.prototype.loadPieces = function( afterload ) {
             afterload();
     };
     var texture = THREE.ImageUtils.loadTexture("textures/marble.jpg");
-
-    var setWhite = function( object ) {
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(4, 4);
+    var setWhite = function (object) {
         object.traverse(function( child ) {
-            if ( child instanceof THREE.Mesh ) {
+            if (child instanceof THREE.Mesh) {
                 child.material.map = texture;
                 child.material.color.setRGB(0.9, 0.9, 0.9);
-                child.material.shininess = 100;
             }
         });
     };
@@ -829,3 +839,91 @@ Board.prototype.animate = function( ) {
         }
     }
 };
+
+// Have different texture "themes"
+// theme can be either "marble" or "wood"
+Board.prototype.switchTheme = function (theme) {
+    if (theme == "wood") {
+        // update datgui var
+        view["Wood theme"] = true;
+        view["Marble theme"] = false;
+
+        var texture = THREE.ImageUtils.loadTexture("textures/grunge/greyscale_natural_grunge1.jpg");
+        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(8, 8);
+        this.boardFrame.traverse(function (child) {
+            if (child instanceof THREE.Mesh) {
+                child.material.map = texture;
+                child.material.color.setRGB(0.7, 0.2, 0.1);
+            }
+        });
+
+        var texture = THREE.ImageUtils.loadTexture("textures/grunge/greyscale_natural_grunge1.jpg");
+        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(1, 1);
+        this.boardSquares[0].traverse(function (child) {
+            if (child instanceof THREE.Mesh) {
+                child.material.map = texture;
+                child.material.color.setRGB(0.7, 0.2, 0.1);
+            }
+        });
+        this.boardSquares[1].traverse(function (child) {
+            if (child instanceof THREE.Mesh) {
+                child.material.map = texture;
+                child.material.color.setRGB(0.1, 0.0, 0.0);
+            }
+        });
+
+        texture = THREE.ImageUtils.loadTexture("textures/grunge/greyscale_natural_grunge4.jpg");
+        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(4, 4);
+        for (var piece in this.pieces) {
+            this.pieces[piece].traverse(function (child) {
+                if (child instanceof THREE.Mesh) {
+                    child.material.map = texture;
+                }
+            });
+        }
+    }
+    else {
+        // update datgui var
+        view["Marble theme"] = true;
+        view["Wood theme"] = false;
+
+        var texture = THREE.ImageUtils.loadTexture("textures/wood.jpg");
+        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(8, 8);
+        this.boardFrame.traverse(function (child) {
+            if (child instanceof THREE.Mesh) {
+                child.material.map = texture;
+            }
+        });
+
+        var texture = THREE.ImageUtils.loadTexture("textures/marble.jpg");
+        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(1, 1);
+        this.boardSquares[0].traverse(function (child) {
+            if (child instanceof THREE.Mesh) {
+                child.material.map = texture;
+                child.material.color.setRGB(0.9, 0.9, 0.9);
+            }
+        });
+        this.boardSquares[1].traverse(function (child) {
+            if (child instanceof THREE.Mesh) {
+                child.material.map = texture;
+                child.material.color.setRGB(0.1, 0.1, 0.1);
+            }
+        });
+
+        texture = THREE.ImageUtils.loadTexture("textures/marble1.jpg");
+        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(4, 4);
+        for (var piece in this.pieces) {
+            this.pieces[piece].traverse(function (child) {
+                if (child instanceof THREE.Mesh) {
+                    child.material.map = texture;
+                }
+            });
+        }
+    }
+}
