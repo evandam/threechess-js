@@ -66,12 +66,13 @@ function ParticleField( location, scene, on_complete, duration, delay_after,
             : 1;
 
     // Normalized velocities to y velocity so things move smoothly
+    var ynorm = 1;
+    if ( this.end_bounds[1] != this.start_bounds[1] ) {
+        ynorm = Math.abs(this.end_bounds[1] - this.start_bounds[1]);
+    }
     this.v_normalized = [
-            Math.abs(this.end_bounds[0] - this.start_bounds[0])
-                    / Math.abs(this.end_bounds[1] - this.start_bounds[1]),
-            1,
-            Math.abs(this.end_bounds[2] - this.start_bounds[2])
-                    / Math.abs(this.end_bounds[1] - this.start_bounds[1]) ];
+            Math.abs(this.end_bounds[0] - this.start_bounds[0]) / ynorm, 1,
+            Math.abs(this.end_bounds[2] - this.start_bounds[2]) / ynorm ];
 
     // Number of particles
     this.particles = ( 'count' in particle_data ) ? particle_data.count : 1000;
@@ -198,16 +199,30 @@ function ParticleField( location, scene, on_complete, duration, delay_after,
         // ms
         this.decay_rate = ( 'rate' in decay_values ) ? decay_values.rate : 0;
 
-        this.decay_velocities = [ 0, 0, 0 ];
-
         // The velocity change in the particles every frame after decay_start
         if ( 'speed_delta' in decay_values ) {
-            this.decay_velocities[0] = ( 'x' in decay_values.speed_delta ) ? decay_values.speed_delta.x
+            this.decay_velocities =
+            {
+                x : this.v_normalized[0],
+                y : this.v_normalized[1],
+                z : this.v_normalized[2]
+            };
+
+            this.decay_velocities.x *= ( 'x' in decay_values.speed_delta ) ? decay_values.speed_delta.x
                     : 0;
-            this.decay_velocities[1] = ( 'y' in decay_values.speed_delta ) ? decay_values.speed_delta.y
+            this.decay_velocities.y *= ( 'y' in decay_values.speed_delta ) ? decay_values.speed_delta.y
                     : 0;
-            this.decay_velocities[2] = ( 'z' in decay_values.speed_delta ) ? decay_values.speed_delta.z
+            this.decay_velocities.z *= ( 'z' in decay_values.speed_delta ) ? decay_values.speed_delta.z
                     : 0;
+        }
+        else {
+
+            this.decay_velocities =
+            {
+                x : 0,
+                y : 0,
+                z : 0
+            };
         }
 
         // Time to wait until starting to decay the field
@@ -277,12 +292,17 @@ ParticleField.prototype.genSphere = function( ) {
             }
             // This ratio makes sure all particles animate smoothly from
             // start to finish and don't form bands
-            velocities[i] = velocity * Math.abs(dest_xyz[i] - p_xyz[i])
-                    / Math.abs(this.end_bounds[i] - this.start_bounds[i]);
-            // Correct sign of velocity
-            velocities[i] *= ( Math.abs(dest_xyz[i] - p_xyz[i]) / ( dest_xyz[i] - p_xyz[i] ) );
-            // And normalize
-            velocities[i] *= this.v_normalized[i];
+            if ( this.end_bounds[i] == this.start_bounds[i] ) {
+                velocities[i] = 0;
+            }
+            else {
+                velocities[i] = velocity * Math.abs(dest_xyz[i] - p_xyz[i])
+                        / Math.abs(this.end_bounds[i] - this.start_bounds[i]);
+                // Correct sign of velocity
+                velocities[i] *= ( Math.abs(dest_xyz[i] - p_xyz[i]) / ( dest_xyz[i] - p_xyz[i] ) );
+                // And normalize
+                velocities[i] *= this.v_normalized[i];
+            }
         }
 
         // p_xyz is relative distance from center, convert to absolute
@@ -344,12 +364,25 @@ ParticleField.prototype.update = function( ) {
                 // Nothing else to do
                 continue;
             }
+
             // Decay velocity
-            for ( var i = 0; i < 3; ++i ) {
-                if ( part.velocity[i] < 0 )
-                    part.velocity[i] += this.decay_velocities[i];
-                else if ( part.velocity[i] > 0 )
-                    part.velocity[i] -= this.decay_velocities[i];
+            if ( part.velocity.x < 0 ) {
+                part.velocity.x += this.decay_velocities.x;
+            }
+            else if ( part.velocity.x > 0 ) {
+                part.velocity.x -= this.decay_velocities.x;
+            }
+            if ( part.velocity.y < 0 ) {
+                part.velocity.y += this.decay_velocities.y;
+            }
+            else if ( part.velocity.y > 0 ) {
+                part.velocity.y -= this.decay_velocities.y;
+            }
+            if ( part.velocity.z < 0 ) {
+                part.velocity.z += this.decay_velocities.z;
+            }
+            else if ( part.velocity.z > 0 ) {
+                part.velocity.z -= this.decay_velocities.z;
             }
         }
 
