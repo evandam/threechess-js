@@ -204,30 +204,8 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
             }
 
             // TODO Cleanup by moving into own function
-            // Generate two new particle field
-            new ParticleField(self.calcXYZ(end), self.board, undefined, 30, 0,
-                    'sphere',
-                    {
-                        // Bounding boxes for external/internal
-                        'start' : [ 1, 2, 1 ],
-                        'end' : [ 4, 3, 4 ],
-                    },
-                    {
-                        // Speed, # of particles, color, size
-                        'velocity' : .1,
-                        'count' : 4000,
-                        'color' : endcolor,
-                        'size' : .1,
-                    },
-                    {
-                        // start decay after 7 frames, 10% of particles culled
-                        // per frame
-                        'start' : 7,
-                        'rate' : .2,
-                    });
-
-            // TODO Move into own function so this isn't all inline
-            new ParticleField(self.calcXYZ(end), self.board, nxtMove, 45, 250,
+            // Generate two new particle fields
+            new ParticleField(self.calcXYZ(end), self.board, nxtMove, -1, 250,
                     'sphere',
                     {
                         // Bounding boxes for external/internal
@@ -242,14 +220,10 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
                         'size' : .15,
                     },
                     {
-                        // start decay after 7 frames, 10% of particles culled
-                        // per frame
+                        // start decay after 7 frames, 10% of particles
+                        // culled per frame
                         'start' : 7,
                         'rate' : .1,
-                        'speed_delta' :
-                        {
-                            'y' : 0.02
-                        },
                     });
 
             piece.move(dx, dz);
@@ -269,17 +243,26 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
                 'sphere',
                 {
                     // Bounding boxes for external/internal
-                    'start' : [ 4, 8, 4 ],
-                    'end' : [ 1, 2, 1 ],
+                    'start' : [ 2, 4, 2 ],
+                    'end' : [ .5, 1, .5 ],
                 },
                 {
                     // Speed, # of particles, color, size
-                    'velocity' : .1,
+                    'velocity' : .055,
                     'count' : 4000,
                     'color' : 0x0,
                     'size' : .2,
-                    'fade_rate' : -0.02,
+                    'fade_rate' : -0.01,
                     'alpha' : .02,
+                },
+                {
+                    'start' : 50,
+                    'speed_delta' :
+                    {
+                        'x' : .02,
+                        'y' : .02,
+                        'z' : .02
+                    },
                 });
         return true;
     }
