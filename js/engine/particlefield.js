@@ -107,11 +107,16 @@ function ParticleField( location, scene, on_complete, duration, delay_after,
     // magic number with no explanation that I could find
     var vert_shader = "\
     		attribute float alpha; \
+            attribute vec3 avg_v; \
     		varying float vAlpha; \
             uniform float size; \
+            uniform float frame;    \
             void main() { \
                 vAlpha = alpha; \
-                vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 ); \
+                vec3 newPos = vec3(position); \
+                vec3 offset = (avg_v * frame); \
+                newPos = newPos + offset;\
+                vec4 mvPosition = modelViewMatrix * vec4( newPos, 1.0 ); \
                 gl_PointSize = size * (300.0 / length(mvPosition.xyz)); \
                 gl_Position = projectionMatrix * mvPosition; \
                 \
@@ -132,6 +137,11 @@ function ParticleField( location, scene, on_complete, duration, delay_after,
             type : 'f',
             value : [ ]
         },
+        avg_v :
+        {
+            type : 'v3',
+            value : [ ]
+        },
     };
 
     // uniforms
@@ -146,6 +156,11 @@ function ParticleField( location, scene, on_complete, duration, delay_after,
         {
             type : "c",
             value : new THREE.Color(self.color)
+        },
+        frame :
+        {
+            type : 'f',
+            value : 0
         },
     };
 
@@ -233,7 +248,7 @@ function ParticleField( location, scene, on_complete, duration, delay_after,
     }
 
     this.duration = duration;
-    this.frame = 0;
+    // this.frame = 0;
 }
 
 /**
@@ -319,9 +334,11 @@ ParticleField.prototype.genSphere = function( ) {
         // Set up the vector with the start position
         particle = new THREE.Vector3(p_xyz[0], p_xyz[1], p_xyz[2]);
 
+        this.p_attributes.avg_v.value[p] = new THREE.Vector3(velocities[0],
+                velocities[1], velocities[2]);
         // Record velocity
-        particle.velocity = new THREE.Vector3(velocities[0], velocities[1],
-                velocities[2]);
+        // particle.velocity = new THREE.Vector3(velocities[0], velocities[1],
+        // velocities[2]);
 
         // Record the destination position
         particle.dests = new THREE.Vector3(dest_xyz[0], dest_xyz[1],
@@ -336,14 +353,14 @@ ParticleField.prototype.genSphere = function( ) {
  * Animates the particlefield movements
  */
 ParticleField.prototype.update = function( ) {
-    var part;
-
     // check for decay trigger
-    if ( this.decay && !this.decaying && this.frame == this.decay_start ) {
+    if ( this.decay && !this.decaying
+            && this.p_uniforms.frame.value == this.decay_start ) {
         this.decaying = true;
     }
 
-    ++this.frame;
+    //Update frame count
+    ++this.p_uniforms.frame.value;
 
     for ( var p = 0; p < this.particles; ++p ) {
 
@@ -351,9 +368,6 @@ ParticleField.prototype.update = function( ) {
             // It's not renderable
             continue;
         }
-
-        // Get a particle
-        part = this.pfield.vertices[p];
 
         // check for decay actions
         if ( this.decay && this.decaying ) {
@@ -366,23 +380,23 @@ ParticleField.prototype.update = function( ) {
             }
 
             // Decay velocity
-            if ( part.velocity.x < 0 ) {
-                part.velocity.x += this.decay_velocities.x;
+            if ( this.p_attributes.avg_v.value[p].x < 0 ) {
+                this.p_attributes.avg_v.value[p].x += ( this.decay_velocities.x / this.p_uniforms.frame.value );
             }
-            else if ( part.velocity.x > 0 ) {
-                part.velocity.x -= this.decay_velocities.x;
+            else if ( this.p_attributes.avg_v.value[p].x > 0 ) {
+                this.p_attributes.avg_v.value[p].x -= ( this.decay_velocities.x / this.p_uniforms.frame.value );
             }
-            if ( part.velocity.y < 0 ) {
-                part.velocity.y += this.decay_velocities.y;
+            if ( this.p_attributes.avg_v.value[p].y < 0 ) {
+                this.p_attributes.avg_v.value[p].y += ( this.decay_velocities.y / this.p_uniforms.frame.value );
             }
-            else if ( part.velocity.y > 0 ) {
-                part.velocity.y -= this.decay_velocities.y;
+            else if ( this.p_attributes.avg_v.value[p].y > 0 ) {
+                this.p_attributes.avg_v.value[p].y -= ( this.decay_velocities.y / this.p_uniforms.frame.value );
             }
-            if ( part.velocity.z < 0 ) {
-                part.velocity.z += this.decay_velocities.z;
+            if ( this.p_attributes.avg_v.value[p].z < 0 ) {
+                this.p_attributes.avg_v.value[p].z += ( this.decay_velocities.z / this.p_uniforms.frame.value );
             }
-            else if ( part.velocity.z > 0 ) {
-                part.velocity.z -= this.decay_velocities.z;
+            else if ( this.p_attributes.avg_v.value[p].z > 0 ) {
+                this.p_attributes.avg_v.value[p].z -= ( this.decay_velocities.z / this.p_uniforms.frame.value );
             }
         }
 
@@ -399,13 +413,11 @@ ParticleField.prototype.update = function( ) {
                 continue;
             }
         }
-
-        // Change position
-        part.add(part.velocity);
     }
 
     // Check if field is done (timeout or no particles)
-    if ( this.frame == this.duration || ( this.particles == this.dead_count ) ) {
+    if ( this.p_uniforms.frame.value == this.duration
+            || ( this.particles == this.dead_count ) ) {
         // Remove the field
         this.parent.remove(this.psys);
 

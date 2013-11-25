@@ -204,8 +204,7 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
                 delete self.pieces[end];
             }
 
-            // TODO Cleanup by moving into own function
-            // Generate two new particle fields
+            // Generate the destination particle field
             new ParticleField(self.calcXYZ(end), self.board, nxtMove, -1, 250,
                     'sphere',
                     {
@@ -216,9 +215,9 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
                     {
                         // Speed, # of particles, color, size
                         'velocity' : .16,
-                        'count' : 1000,
+                        'count' : 2000,
                         'color' : endcolor,
-                        'size' : .15,
+                        'size' : .1,
                     },
                     {
                         // start decay after 7 frames, 10% of particles
@@ -236,7 +235,6 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
 
         };
 
-        // TODO Move into own funciton so this isn't inline
         // Make the pretty particle effects
         // Make a cloud, expand outwards, after finish: call inbetween, max
         // duration of effect is 1s, wait 0ms before executing inbetween
@@ -250,9 +248,9 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
                 {
                     // Speed, # of particles, color, size
                     'velocity' : .055,
-                    'count' : 4000,
+                    'count' : 2000,
                     'color' : 0x0,
-                    'size' : .2,
+                    'size' : .4,
                     'fade_rate' : -0.01,
                     'alpha' : .02,
                 },
