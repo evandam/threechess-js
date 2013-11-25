@@ -71,6 +71,7 @@ function Board( scene, afterload ) {
                 if ( child instanceof THREE.Mesh ) {
                     // child.material.color.setRGB(133 / 256, 94 / 256, 66 /
                     // 256);
+                    child.material.color.setRGB(0.0, 0.1, 0.1);
                     child.material.map = texture;
                 }
             });
@@ -896,6 +897,7 @@ Board.prototype.switchTheme = function (theme) {
         this.boardFrame.traverse(function (child) {
             if (child instanceof THREE.Mesh) {
                 child.material.map = texture;
+                child.material.color.setRGB(0.0, 0.1, 0.1);
             }
         });
 
