@@ -64,9 +64,9 @@ function Board( scene, afterload ) {
             // Dark wood: 133;94;66 RGB
 
             // load a texture, set wrap mode to repeat
-            var texture = THREE.ImageUtils.loadTexture("textures/wood.jpg");
+            var texture = THREE.ImageUtils.loadTexture("textures/BloodMarble.png");
             texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-            texture.repeat.set(4, 4);
+            texture.repeat.set(16, 16);
             object.traverse(function( child ) {
                 if ( child instanceof THREE.Mesh ) {
                     // child.material.color.setRGB(133 / 256, 94 / 256, 66 /
@@ -890,9 +890,9 @@ Board.prototype.switchTheme = function (theme) {
         view.Marble = true;
         view.Wood = false;
 
-        var texture = THREE.ImageUtils.loadTexture("textures/wood.jpg");
+        var texture = THREE.ImageUtils.loadTexture("textures/BloodMarble.png");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-        texture.repeat.set(8, 8);
+        texture.repeat.set(16, 16);
         this.boardFrame.traverse(function (child) {
             if (child instanceof THREE.Mesh) {
                 child.material.map = texture;
