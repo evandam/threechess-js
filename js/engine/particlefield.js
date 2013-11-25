@@ -81,13 +81,6 @@ function ParticleField( location, scene, on_complete, duration, delay_after,
 
     // Size of the particle
     this.p_size = ( 'size' in particle_data ) ? particle_data.size : .1;
-    // You see nothing out of the ordinary here, please continue at later lines
-    // of code. Thank you (but seriously, if there's a better way to make it a
-    // float no matter what, please tell me)
-    this.p_size = "" + this.p_size;
-    if ( this.p_size.indexOf(".") == -1 ) {
-        this.p_size += ".0";
-    }
 
     // Handles fading out particles over time
     this.fade_rate = ( 'fade_rate' in particle_data ) ? particle_data.fade_rate
@@ -109,14 +102,26 @@ function ParticleField( location, scene, on_complete, duration, delay_after,
     // Make the shader material, allows more advanced manipulation of
     // colors/alphas
     // Need to create the dynamic alpha particle shaders
-    var vert_shader = [ "attribute float alpha;", "varying float vAlpha;",
-            "void main() {", " vAlpha = alpha;",
-            "vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );",
-            "gl_PointSize = " + this.p_size + ";",
-            "gl_Position = projectionMatrix * mvPosition;", "}" ].join("\n");
-    var frag_shader = [ "uniform vec3 color;", "varying float vAlpha;",
-            "void main() {", "gl_FragColor = vec4( color, vAlpha );", "}" ]
-            .join("\n");
+    // The 300.0 is there because every single example I could find used this
+    // magic number with no explanation that I could find
+    var vert_shader = "\
+    		attribute float alpha; \
+    		varying float vAlpha; \
+            uniform float size; \
+            void main() { \
+                vAlpha = alpha; \
+                vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 ); \
+                gl_PointSize = size * (300.0 / length(mvPosition.xyz)); \
+                gl_Position = projectionMatrix * mvPosition; \
+                \
+            }";
+    var frag_shader = " \
+            uniform vec3 color; \
+            varying float vAlpha; \
+            void main() { \
+                gl_FragColor = vec4( color, vAlpha ); \
+                \
+            }";
 
     // attributes
     this.p_attributes =
@@ -131,6 +136,11 @@ function ParticleField( location, scene, on_complete, duration, delay_after,
     // uniforms
     this.p_uniforms =
     {
+        size :
+        {
+            type : 'f',
+            value : this.p_size
+        },
         color :
         {
             type : "c",

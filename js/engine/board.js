@@ -216,9 +216,9 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
                     {
                         // Speed, # of particles, color, size
                         'velocity' : .1,
-                        'count' : 5000,
+                        'count' : 4000,
                         'color' : endcolor,
-                        'size' : 5,
+                        'size' : .1,
                     },
                     {
                         // start decay after 7 frames, 10% of particles culled
@@ -228,7 +228,7 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
                     });
 
             // TODO Move into own function so this isn't all inline
-            new ParticleField(self.calcXYZ(end), self.board, nxtMove, 30, 250,
+            new ParticleField(self.calcXYZ(end), self.board, nxtMove, 45, 250,
                     'sphere',
                     {
                         // Bounding boxes for external/internal
@@ -238,15 +238,15 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
                     {
                         // Speed, # of particles, color, size
                         'velocity' : .16,
-                        'count' : 5000,
+                        'count' : 1000,
                         'color' : endcolor,
-                        'size' : 5,
+                        'size' : .15,
                     },
                     {
                         // start decay after 7 frames, 10% of particles culled
                         // per frame
                         'start' : 7,
-                        'rate' : .2,
+                        'rate' : .1,
                         'speed_delta' :
                         {
                             'y' : 0.02
@@ -276,9 +276,9 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
                 {
                     // Speed, # of particles, color, size
                     'velocity' : .1,
-                    'count' : 5000,
+                    'count' : 4000,
                     'color' : 0x0,
-                    'size' : 5,
+                    'size' : .2,
                     'fade_rate' : -0.02,
                     'alpha' : .02,
                 });
