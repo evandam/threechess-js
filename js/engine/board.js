@@ -862,8 +862,8 @@ Board.prototype.animate = function( ) {
 Board.prototype.switchTheme = function (theme) {
     if (theme == "wood") {
         // update datgui var
-        view["Wood theme"] = true;
-        view["Marble theme"] = false;
+        view.Marble = false;
+        view.Wood = true;
 
         var texture = THREE.ImageUtils.loadTexture("textures/grunge/greyscale_natural_grunge1.jpg");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
@@ -904,8 +904,8 @@ Board.prototype.switchTheme = function (theme) {
     }
     else {
         // update datgui var
-        view["Marble theme"] = true;
-        view["Wood theme"] = false;
+        view.Marble = true;
+        view.Wood = false;
 
         var texture = THREE.ImageUtils.loadTexture("textures/wood.jpg");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;

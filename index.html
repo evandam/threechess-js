@@ -40,6 +40,7 @@
     <script src="js/engine/controller.js"></script>
     <script src="js/engine/board.js"></script>
     <script src="js/dat.gui.min.js"></script>
+    <script src="js/jquery-1.10.2.min.js"></script>
 
     <script>
         var container, stats;
@@ -104,22 +105,32 @@
 
             // datgui
             view = {
-                "Marble theme": true,
-                "Wood theme": false
+                "Marble": true,
+                "Wood": false,
+                "URL": 'http://www.bencarle.com/chess/cg/340',
+                "Start game": function () {
+                    controller.connectTo(this.URL);
+                }
             };
 
             var gui = new dat.GUI();
-            var folder = gui.addFolder('Chess');
-            var marbleController = folder.add(view, 'Marble theme').listen();
-            var woodController = folder.add(view, 'Wood theme').listen();
+            var root = gui.addFolder('Chess');
+
+            var themes = root.addFolder('Theme');
+            var marbleController = themes.add(view, 'Marble').listen();
+            var woodController = themes.add(view, 'Wood').listen();
             marbleController.onChange(function (value) {
-                view['Wood theme'] = !value;
+                view.Wood = !value;
                 controller.board.switchTheme('marble');
             });
             woodController.onChange(function (value) {
-                view['Marble theme'] = !value;
+                view.Marble = !value;
                 controller.board.switchTheme('wood');
             });
+
+            root.add(view, 'URL');
+            root.add(view, 'Start game');
+            root.open();
 
         }
 

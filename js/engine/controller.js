@@ -22,9 +22,23 @@ function Controller( scene ) {
  *            The url to connect to
  */
 Controller.prototype.connectTo = function( url ) {
-
+    var self = this;
     if ( url ) {
-        // TODO Open the connection and do stuff with it
+        // Clear the current queue of moves
+        // And queue up the moves from the server
+        // TODO: need to reset the pieces
+        $.ajax({
+            url: url,
+            async: false,
+            dataType: 'json',
+            success: function (data) {
+                console.log(data.moves);
+                self.board.moveQueue = [];
+                for(var i in data.moves) {
+                    self.board.queueMove(data.moves[i][0], data.moves[i].slice(1));
+                }
+            }
+        });
     }
     else {
         // TODO Set up debug interactions
