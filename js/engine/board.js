@@ -192,13 +192,15 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
                 delete self.pieces[end];
             }
             // Generate the new particle field
-            new ParticleField(self.calcXYZ(end), self.board, nxtMove, 500,
-                    250, 'sphere',
+            new ParticleField(self.calcXYZ(end), self.board, nxtMove, 500, 250,
+                    'sphere',
                     {
+                        // Bounding boxes for external/internal
                         'start' : [ 1, 2, 1 ],
                         'end' : [ 4, 8, 4 ]
                     },
                     {
+                        // Speed, # of particles, color
                         'velocity' : .2,
                         'count' : 5000,
                         'color' : endcolor
@@ -216,13 +218,20 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
         new ParticleField(self.calcXYZ(start), self.board, inbetween, 1000, 0,
                 'sphere',
                 {
+                    // Bounding boxes for external/internal
                     'start' : [ 4, 8, 4 ],
                     'end' : [ 1, 2, 1 ]
                 },
                 {
+                    // Speed, # of particles, color
                     'velocity' : .1,
                     'count' : 5000,
                     'color' : 0x0
+                },
+                {
+                    // start decay instantly, 10% of particles culled per frame
+                    'start' : 0,
+                    'rate' : .1
                 });
         return true;
     }

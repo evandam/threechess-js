@@ -82,10 +82,46 @@ function ParticleField( location, scene, on_complete, duration, delay_after,
     // The particle field
     this.pfield = new THREE.Geometry();
 
-    this.pfield_mat = new THREE.ParticleSystemMaterial(
+    // Make the shader material, allows more advanced manipulation of
+    // colors/alphas
+    // Need to create the dynamic alpha particle shaders
+    var vert_shader = [ "attribute float alpha;", "varying float vAlpha;",
+            "void main() {", " vAlpha = alpha;",
+            "vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );",
+            "gl_PointSize = " + this.p_size + ";",
+            "gl_Position = projectionMatrix * mvPosition;", "}" ].join("\n");
+    var frag_shader = [ "uniform vec3 color;", "varying float vAlpha;",
+            "void main() {", "gl_FragColor = vec4( color, vAlpha );", "}" ]
+            .join("\n");
+
+    // attributes
+    attributes =
     {
-        color : self.color,
-        size : self.p_size
+        alpha :
+        {
+            type : 'f',
+            value : [ ]
+        },
+    };
+
+    // uniforms
+    uniforms =
+    {
+        color :
+        {
+            type : "c",
+            value : new THREE.Color(self.color)
+        },
+    };
+
+    // particle system material
+    this.pfield_mat = new THREE.ShaderMaterial(
+    {
+        uniforms : uniforms,
+        attributes : attributes,
+        vertexShader : vert_shader,
+        fragmentShader : frag_shader,
+        transparent : true
     });
 
     // Make the particle field
@@ -101,6 +137,11 @@ function ParticleField( location, scene, on_complete, duration, delay_after,
     this.psys.sortParticles = true;
     this.psys.frustumCulled = true;
 
+    // Set all alphas initially to 1
+    for ( var i = 0; i < this.particles; ++i ) {
+        attributes.alpha.value[i] = 1;
+    }
+
     // Register a frame update function
     this.psys.update = function( ) {
         self.update();
@@ -112,14 +153,27 @@ function ParticleField( location, scene, on_complete, duration, delay_after,
     if ( decay_values ) {
         this.decay = true;
         this.decaying = false;
+        this.dead_count = 0;
         // The chance of a particle being removed every frame after decay_start
         // ms
-        this.decay_rate = ( 'rate' in decay_values ) ? decay_values.rate : .2;
+        this.decay_rate = ( 'rate' in decay_values ) ? decay_values.rate : 0;
         // The velocity change in the particles every frame after decay_start
-        this.decay_velocity = ( 'speed_delta' in decay_values ) ? decay_values.speed_delta
-                : 0;
+        if ( 'speed_delta' in decay_values ) {
+            this.decay_velocities[0] = ( 'x' in decay_values.speed_delta ) ? decay_values.speed_delta.x
+                    : 0;
+            this.decay_velocities[1] = ( 'y' in decay_values.speed_delta ) ? decay_values.speed_delta.y
+                    : 0;
+            this.decay_velocities[2] = ( 'z' in decay_values.speed_delta ) ? decay_values.speed_delta.z
+                    : 0;
+        }
+        else {
+            this.decay_velocities = [ 0, 0, 0 ];
+        }
         // Time to wait until starting to decay the field
         this.decay_start = decay_values.start;
+    }
+    else {
+        this.decay = false;
     }
 
     // Time to kill animation after
@@ -221,20 +275,47 @@ ParticleField.prototype.genSphere = function( ) {
  * Animates the particlefield movements
  */
 ParticleField.prototype.update = function( ) {
-
     var part;
 
-    // TODO Handle decay
+    // check for decay trigger
+    if ( this.decay && !this.decaying && Date.now() > this.decay_start ) {
+        this.decaying = true;
+    }
+
+    var dead_particles = [ ];
+
     for ( var p = 0; p < this.particles; ++p ) {
         // Get a particle
         part = this.pfield.vertices[p];
-        
+
+        // check for decay actions
+        if ( this.decay && this.decaying ) {
+            // Decay velocity
+            for ( var i = 0; i < 3; ++i ) {
+                part.velocity[i] += ( this.decay_velocities[i] * this.v_normalized[i] );
+            }
+        }
+
         // Change position
         part.add(part.velocity);
     }
 
-    // Check if field is done
-    if ( Date.now() >= this.time_end ) {
+    if ( this.decay && this.decaying ) {
+        // cull dead particles
+        var index;
+        // TODO Might be a more efficient way to do this
+        for ( var d = 0; d < dead_particles.length; ++d ) {
+            // Find index
+            index = this.pfield.vertices.indexOf(dead_particles[d]);
+            // cull
+            this.pfield.vertices.splice(index, 1);
+        }
+        // Update number of particles
+        this.dead_count += dead_particles.length;
+    }
+    // Check if field is done (timout or no particles
+    if ( Date.now() >= this.time_end
+            || ( this.decaying && this.particles == this.dead_count ) ) {
         // Remove the field
         this.parent.remove(this.psys);
         var self = this;
