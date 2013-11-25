@@ -39,10 +39,12 @@
     <script src="js/engine/particlefield.js"></script>
     <script src="js/engine/controller.js"></script>
     <script src="js/engine/board.js"></script>
+    <script src="js/dat.gui.min.js"></script>
 
     <script>
         var container, stats;
         var camera, scene, renderer;
+        var view;   // for datgui
         
         // control camera movement by clicking and dragging
         var mouseX = 0, mouseY = 0;
@@ -99,6 +101,26 @@
                                     * Math.cos(phi * Math.PI / 360);
                 camera.updateMatrix();
             }, false);
+
+            // datgui
+            view = {
+                "Marble theme": true,
+                "Wood theme": false
+            };
+
+            var gui = new dat.GUI();
+            var folder = gui.addFolder('Chess');
+            var marbleController = folder.add(view, 'Marble theme').listen();
+            var woodController = folder.add(view, 'Wood theme').listen();
+            marbleController.onChange(function (value) {
+                view['Wood theme'] = !value;
+                controller.board.switchTheme('marble');
+            });
+            woodController.onChange(function (value) {
+                view['Marble theme'] = !value;
+                controller.board.switchTheme('wood');
+            });
+
         }
 
         function cloneObj(obj) {
