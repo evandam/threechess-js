@@ -192,18 +192,25 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
                 delete self.pieces[end];
             }
             // Generate the new particle field
-            new ParticleField(self.calcXYZ(end), self.board, nxtMove, 500, 250,
-                    'sphere',
+            new ParticleField(self.calcXYZ(end), self.board, nxtMove, 1000,
+                    250, 'sphere',
                     {
                         // Bounding boxes for external/internal
                         'start' : [ 1, 2, 1 ],
-                        'end' : [ 4, 8, 4 ]
+                        'end' : [ 4, 8, 4 ],
                     },
                     {
-                        // Speed, # of particles, color
+                        // Speed, # of particles, color, size
                         'velocity' : .2,
                         'count' : 5000,
-                        'color' : endcolor
+                        'color' : endcolor,
+                        'size' : 5,
+                    },
+                    {
+                        // start decay after 100ms, 10% of particles culled per
+                        // frame
+                        'start' : 250,
+                        'rate' : .1,
                     });
             piece.move(dx, dz);
 
@@ -220,18 +227,14 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
                 {
                     // Bounding boxes for external/internal
                     'start' : [ 4, 8, 4 ],
-                    'end' : [ 1, 2, 1 ]
+                    'end' : [ 1, 2, 1 ],
                 },
                 {
-                    // Speed, # of particles, color
+                    // Speed, # of particles, color, size
                     'velocity' : .1,
                     'count' : 5000,
-                    'color' : 0x0
-                },
-                {
-                    // start decay instantly, 10% of particles culled per frame
-                    'start' : 0,
-                    'rate' : .1
+                    'color' : 0x0,
+                    'size' : 5,
                 });
         return true;
     }

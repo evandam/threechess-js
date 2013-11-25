@@ -26,7 +26,12 @@
  *            'randomize':Boolean}. Randomize defaults to false, if set to true
  *            the velocity of the particles will be Math.random() * velocity.
  * @param decay_values
- *            NYI
+ *            Sets data relating to particle decay rate. This takes the form of
+ *            the map {'start':Number, 'rate':Number, 'speed_delta':Number}
+ *            Where start is the delay in ms to wait before starting the decay.
+ *            Rate is % of particles to cull per frame. speed_delta is the
+ *            change in speed per frame. speed_delta should be a map of {x:rate,
+ *            y:rate, z:rate}
  * @returns self
  */
 function ParticleField( location, scene, on_complete, duration, delay_after,
@@ -68,6 +73,13 @@ function ParticleField( location, scene, on_complete, duration, delay_after,
 
     // Size of the particle
     this.p_size = ( 'size' in particle_data ) ? particle_data.size : .1;
+    // You see nothing out of the ordinary here, please continue at later lines
+    // of code. Thank you (but seriously, if there's a better way to make it a
+    // float no matter what, please tell me)
+    this.p_size = "" + this.p_size;
+    if ( this.p_size.indexOf(".") == -1 ) {
+        this.p_size += ".0";
+    }
 
     // Should the velocity be randomized or not (will be a percentage of
     // this.velocity)
@@ -95,7 +107,7 @@ function ParticleField( location, scene, on_complete, duration, delay_after,
             .join("\n");
 
     // attributes
-    attributes =
+    this.p_attributes =
     {
         alpha :
         {
@@ -105,7 +117,7 @@ function ParticleField( location, scene, on_complete, duration, delay_after,
     };
 
     // uniforms
-    uniforms =
+    this.p_uniforms =
     {
         color :
         {
@@ -117,8 +129,8 @@ function ParticleField( location, scene, on_complete, duration, delay_after,
     // particle system material
     this.pfield_mat = new THREE.ShaderMaterial(
     {
-        uniforms : uniforms,
-        attributes : attributes,
+        uniforms : this.p_uniforms,
+        attributes : this.p_attributes,
         vertexShader : vert_shader,
         fragmentShader : frag_shader,
         transparent : true
@@ -139,7 +151,7 @@ function ParticleField( location, scene, on_complete, duration, delay_after,
 
     // Set all alphas initially to 1
     for ( var i = 0; i < this.particles; ++i ) {
-        attributes.alpha.value[i] = 1;
+        this.p_attributes.alpha.value[i] = 1;
     }
 
     // Register a frame update function
@@ -282,17 +294,29 @@ ParticleField.prototype.update = function( ) {
         this.decaying = true;
     }
 
-    var dead_particles = [ ];
-
     for ( var p = 0; p < this.particles; ++p ) {
+
+        if ( this.p_attributes.alpha.value[p] === 0 ) {
+            // It's not renderable
+            continue;
+        }
+
         // Get a particle
         part = this.pfield.vertices[p];
 
         // check for decay actions
         if ( this.decay && this.decaying ) {
+            if ( this.decay_rate && Math.random() < this.decay_rate ) {
+                // Cull particle
+                this.p_attributes.alpha.value[p] = 0;
+                ++this.dead_count;
+            }
             // Decay velocity
             for ( var i = 0; i < 3; ++i ) {
-                part.velocity[i] += ( this.decay_velocities[i] * this.v_normalized[i] );
+                if ( part.velocity[i] < 0 )
+                    part.velocity[i] += ( this.decay_velocities[i] * this.v_normalized[i] );
+                else if ( part.velocity[i] > 0 )
+                    part.velocity[i] -= ( this.decay_velocities[i] * this.v_normalized[i] );
             }
         }
 
@@ -300,19 +324,6 @@ ParticleField.prototype.update = function( ) {
         part.add(part.velocity);
     }
 
-    if ( this.decay && this.decaying ) {
-        // cull dead particles
-        var index;
-        // TODO Might be a more efficient way to do this
-        for ( var d = 0; d < dead_particles.length; ++d ) {
-            // Find index
-            index = this.pfield.vertices.indexOf(dead_particles[d]);
-            // cull
-            this.pfield.vertices.splice(index, 1);
-        }
-        // Update number of particles
-        this.dead_count += dead_particles.length;
-    }
     // Check if field is done (timout or no particles
     if ( Date.now() >= this.time_end
             || ( this.decaying && this.particles == this.dead_count ) ) {
