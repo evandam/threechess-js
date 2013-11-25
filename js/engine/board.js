@@ -188,30 +188,60 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
         var inbetween = function( ) {
             if ( capturing ) {
                 // Remove the renderable object
+                // TODO Move piece to capture area
                 self.board.remove(self.pieces[end]);
                 delete self.pieces[end];
             }
-            // Generate the new particle field
-            new ParticleField(self.calcXYZ(end), self.board, nxtMove, 1000,
-                    250, 'sphere',
+
+            // TODO Cleanup by moving into own function
+            // Generate two new particle field
+            new ParticleField(self.calcXYZ(end), self.board, undefined, 30, 0,
+                    'sphere',
                     {
                         // Bounding boxes for external/internal
                         'start' : [ 1, 2, 1 ],
-                        'end' : [ 4, 8, 4 ],
+                        'end' : [ 4, 3, 4 ],
                     },
                     {
                         // Speed, # of particles, color, size
-                        'velocity' : .2,
+                        'velocity' : .1,
                         'count' : 5000,
                         'color' : endcolor,
                         'size' : 5,
                     },
                     {
-                        // start decay after 100ms, 10% of particles culled per
-                        // frame
-                        'start' : 250,
-                        'rate' : .1,
+                        // start decay after 7 frames, 10% of particles culled
+                        // per frame
+                        'start' : 7,
+                        'rate' : .2,
                     });
+
+            // TODO Move into own function so this isn't all inline
+            new ParticleField(self.calcXYZ(end), self.board, nxtMove, 30, 250,
+                    'sphere',
+                    {
+                        // Bounding boxes for external/internal
+                        'start' : [ 1, 2, 1 ],
+                        'end' : [ 2, 18, 2 ],
+                    },
+                    {
+                        // Speed, # of particles, color, size
+                        'velocity' : .16,
+                        'count' : 5000,
+                        'color' : endcolor,
+                        'size' : 5,
+                    },
+                    {
+                        // start decay after 7 frames, 10% of particles culled
+                        // per frame
+                        'start' : 7,
+                        'rate' : .2,
+                        'speed_delta' :
+                        {
+                            'y' : 0.02
+                        },
+                    });
+
             piece.move(dx, dz);
 
             // Remove the old piece @ old position
@@ -221,8 +251,11 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
 
         };
 
+        // TODO Move into own funciton so this isn't inline
         // Make the pretty particle effects
-        new ParticleField(self.calcXYZ(start), self.board, inbetween, 1000, 0,
+        // Make a cloud, expand outwards, after finish: call inbetween, max
+        // duration of effect is 1s, wait 0ms before executing inbetween
+        new ParticleField(self.calcXYZ(start), self.board, inbetween, 60, 0,
                 'sphere',
                 {
                     // Bounding boxes for external/internal
@@ -235,6 +268,8 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
                     'count' : 5000,
                     'color' : 0x0,
                     'size' : 5,
+                    'fade_rate' : -0.02,
+                    'alpha' : .02,
                 });
         return true;
     }

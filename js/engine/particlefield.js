@@ -10,7 +10,7 @@
  * @param on_complete
  *            A callback function to execute after the field has finished
  * @param duration
- *            The time in ms to leave the field running
+ *            The Number of frames to execute the animation for
  * @param delay_after
  *            The time in ms to wait before executing the callback function
  * @param field_shape
@@ -23,15 +23,19 @@
  * @param particle_data
  *            Data on the type of particles to create. The options are specified
  *            by a map of {'velocity':Number, 'count':Number, 'size':Number,
- *            'randomize':Boolean}. Randomize defaults to false, if set to true
- *            the velocity of the particles will be Math.random() * velocity.
+ *            'randomize':Boolean, 'fade_rate':Number, 'alpha':Number}.
+ *            Randomize defaults to false, if set to true the velocity of the
+ *            particles will be Math.random() * velocity. Fade_rate defaults to
+ *            0 if unset, otherwise it should be a number between 0 and 1
+ *            indicating the change in alpha per frame. Alpha is the initial
+ *            alpha value of the particles.
  * @param decay_values
  *            Sets data relating to particle decay rate. This takes the form of
- *            the map {'start':Number, 'rate':Number, 'speed_delta':Number}
- *            Where start is the delay in ms to wait before starting the decay.
- *            Rate is % of particles to cull per frame. speed_delta is the
- *            change in speed per frame. speed_delta should be a map of {x:rate,
- *            y:rate, z:rate}
+ *            the map {'start':Number, 'rate':Number, 'speed_delta':{x:Number,
+ *            y:Number, z:Number}} Where start is the delay in frames to wait
+ *            before starting the decay. Rate is % of particles to cull per
+ *            frame. speed_delta is the change in speed per frame. speed_delta
+ *            should be a map of {x:rate, y:rate, z:rate}
  * @returns self
  */
 function ParticleField( location, scene, on_complete, duration, delay_after,
@@ -62,8 +66,12 @@ function ParticleField( location, scene, on_complete, duration, delay_after,
             : 1;
 
     // Normalized velocities to y velocity so things move smoothly
-    this.v_normalized = [ this.start_bounds[0] / this.start_bounds[1], 1,
-            this.start_bounds[2] / this.start_bounds[1] ];
+    this.v_normalized = [
+            Math.abs(this.end_bounds[0] - this.start_bounds[0])
+                    / Math.abs(this.end_bounds[1] - this.start_bounds[1]),
+            1,
+            Math.abs(this.end_bounds[2] - this.start_bounds[2])
+                    / Math.abs(this.end_bounds[1] - this.start_bounds[1]) ];
 
     // Number of particles
     this.particles = ( 'count' in particle_data ) ? particle_data.count : 1000;
@@ -80,6 +88,10 @@ function ParticleField( location, scene, on_complete, duration, delay_after,
     if ( this.p_size.indexOf(".") == -1 ) {
         this.p_size += ".0";
     }
+
+    // Handles fading out particles over time
+    this.fade_rate = ( 'fade_rate' in particle_data ) ? particle_data.fade_rate
+            : 0;
 
     // Should the velocity be randomized or not (will be a percentage of
     // this.velocity)
@@ -149,9 +161,13 @@ function ParticleField( location, scene, on_complete, duration, delay_after,
     this.psys.sortParticles = true;
     this.psys.frustumCulled = true;
 
-    // Set all alphas initially to 1
+    var alphastart = ( 'alpha' in particle_data ) ? particle_data.alpha : 1;
+    // If initial is zero somehow, just make it tiny
+    alphastart = ( alphastart ) ? alphastart : 0.000000001;
+
+    // Set up initial alpha values
     for ( var i = 0; i < this.particles; ++i ) {
-        this.p_attributes.alpha.value[i] = 1;
+        this.p_attributes.alpha.value[i] = alphastart;
     }
 
     // Register a frame update function
@@ -159,16 +175,21 @@ function ParticleField( location, scene, on_complete, duration, delay_after,
         self.update();
     };
 
+    // Unrenderable particles
+    this.dead_count = 0;
+
     scene.add(this.psys);
 
     // cool field decay effects controller
     if ( decay_values ) {
         this.decay = true;
         this.decaying = false;
-        this.dead_count = 0;
         // The chance of a particle being removed every frame after decay_start
         // ms
         this.decay_rate = ( 'rate' in decay_values ) ? decay_values.rate : 0;
+
+        this.decay_velocities = [ 0, 0, 0 ];
+
         // The velocity change in the particles every frame after decay_start
         if ( 'speed_delta' in decay_values ) {
             this.decay_velocities[0] = ( 'x' in decay_values.speed_delta ) ? decay_values.speed_delta.x
@@ -178,9 +199,7 @@ function ParticleField( location, scene, on_complete, duration, delay_after,
             this.decay_velocities[2] = ( 'z' in decay_values.speed_delta ) ? decay_values.speed_delta.z
                     : 0;
         }
-        else {
-            this.decay_velocities = [ 0, 0, 0 ];
-        }
+
         // Time to wait until starting to decay the field
         this.decay_start = decay_values.start;
     }
@@ -188,8 +207,8 @@ function ParticleField( location, scene, on_complete, duration, delay_after,
         this.decay = false;
     }
 
-    // Time to kill animation after
-    this.time_end = Date.now() + duration;
+    this.duration = duration;
+    this.frame = 0;
 }
 
 /**
@@ -290,9 +309,11 @@ ParticleField.prototype.update = function( ) {
     var part;
 
     // check for decay trigger
-    if ( this.decay && !this.decaying && Date.now() > this.decay_start ) {
+    if ( this.decay && !this.decaying && this.frame == this.decay_start ) {
         this.decaying = true;
     }
+
+    ++this.frame;
 
     for ( var p = 0; p < this.particles; ++p ) {
 
@@ -310,13 +331,29 @@ ParticleField.prototype.update = function( ) {
                 // Cull particle
                 this.p_attributes.alpha.value[p] = 0;
                 ++this.dead_count;
+                // Nothing else to do
+                continue;
             }
             // Decay velocity
             for ( var i = 0; i < 3; ++i ) {
                 if ( part.velocity[i] < 0 )
-                    part.velocity[i] += ( this.decay_velocities[i] * this.v_normalized[i] );
+                    part.velocity[i] += this.decay_velocities[i];
                 else if ( part.velocity[i] > 0 )
-                    part.velocity[i] -= ( this.decay_velocities[i] * this.v_normalized[i] );
+                    part.velocity[i] -= this.decay_velocities[i];
+            }
+        }
+
+        // check for fadeout
+        if ( this.fade_rate ) {
+            this.p_attributes.alpha.value[p] -= this.fade_rate;
+            // Don't exceed 1
+            this.p_attributes.alpha.value[p] = Math.min(
+                    this.p_attributes.alpha.value[p], 1);
+            // Handle negative/0 alpha
+            if ( this.p_attributes.alpha.value[p] <= 0 ) {
+                this.p_attributes.alpha.value[p] = 0;
+                ++this.dead_count;
+                continue;
             }
         }
 
@@ -324,15 +361,17 @@ ParticleField.prototype.update = function( ) {
         part.add(part.velocity);
     }
 
-    // Check if field is done (timout or no particles
-    if ( Date.now() >= this.time_end
-            || ( this.decaying && this.particles == this.dead_count ) ) {
+    // Check if field is done (timeout or no particles)
+    if ( this.frame == this.duration || ( this.particles == this.dead_count ) ) {
         // Remove the field
         this.parent.remove(this.psys);
-        var self = this;
-        // Execute the callback
-        setTimeout(function( ) {
-            self.on_complete();
-        }, this.delay);
+
+        if ( this.on_complete ) {
+            var self = this;
+            // Execute the callback
+            setTimeout(function( ) {
+                self.on_complete();
+            }, this.delay);
+        }
     }
 };
