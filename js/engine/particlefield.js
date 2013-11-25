@@ -1,160 +1,136 @@
 /**
- * Creates a 'teleportation' particle field for use during piece movement
+ * Creates a particle field with the specified attributes in 3d space The
+ * creator of the field is responsible for scheduling the field's update
+ * function
  * 
- * @param from
- *            The square the piece is starting in
- * @param to
- *            The square the piece is moving to
- * @param color_start
- *            The hexidecimal color to use for the particles in the start square
- * @param color_end
- *            Same as above but for the destination square
+ * @param location
+ *            The xyz coordinates of the center of the field
  * @param scene
- *            The parent rendering node to attach to
+ *            The rendering scene to attach to
  * @param on_complete
- *            The function to call after the animation completes
+ *            A callback function to execute after the field has finished
+ * @param duration
+ *            The time in ms to leave the field running
+ * @param delay_after
+ *            The time in ms to wait before executing the callback function
+ * @param field_shape
+ *            The shape of the field, currently only 'sphere' is a choice
+ * @param field_bounds
+ *            The xyz distances from the center of the field that the particles
+ *            can extend from the center of the field. Can specify both start
+ *            bounding box and end bounding box. Specified by a map of
+ *            {'start':[x, y, z], 'end':[x, y, z]}
+ * @param particle_data
+ *            Data on the type of particles to create. The options are specified
+ *            by a map of {'velocity':Number, 'count':Number, 'size':Number,
+ *            'randomize':Boolean}. Randomize defaults to false, if set to true
+ *            the velocity of the particles will be Math.random() * velocity.
+ * @param decay_values
+ *            NYI
+ * @returns self
  */
-function ParticleField( from, to, color_start, color_end, scene, s1_complete,
-        s2_complete ) {
+function ParticleField( location, scene, on_complete, duration, delay_after,
+        field_shape, field_bounds, particle_data, decay_values ) {
 
     var self = this;
     // For removing objects
     this.parent = scene;
-    // Time to wait before executing scene end in ms
-    this.endWait = 250;
 
-    this.s1_complete = s1_complete;
-    this.s2_complete = s2_complete;
+    this.delay = delay_after;
 
-    // Indicates if rendering field 1 or 2
-    this.rendering1 = true;
+    // Function to execute after field finishes animation
+    this.on_complete = on_complete;
 
-    // Record from/to for particle movement
-    var xz = this.calcXZ(from);
-    this.f_x = xz['x'];
-    this.f_z = xz['z'];
+    // Shape of the field, affects how particles move
+    this.type = field_shape;
 
-    xz = this.calcXZ(to);
-    this.t_x = xz['x'];
-    this.t_z = xz['z'];
+    // XYZ Bounding box sizes of the fields
+    // Starting field
+    this.start_bounds = ( 'start' in field_bounds ) ? field_bounds.start : [ 8,
+            8, 8 ];
+    // Ending field
+    this.end_bounds = ( 'end' in field_bounds ) ? field_bounds.end
+            : [ 1, 1, 1 ];
 
-    // Speed to move particles to/from the center
-    this.VELOCITY = .1;
+    // Speed of the particles
+    this.velocity = ( 'velocity' in particle_data ) ? particle_data.velocity
+            : 1;
 
-    // Number of particles to fill in the square
-    this.PARTICLE_COUNT = 5000;
-    // This is small enough to look nice
-    this.PARTICLE_SIZE = .1;
+    // Normalized velocities to y velocity so things move smoothly
+    this.v_normalized = [ this.start_bounds[0] / this.start_bounds[1], 1,
+            this.start_bounds[2] / this.start_bounds[1] ];
 
-    // Distance to edges
-    this.EDGE_DISTS = [ 8, 16, 8 ];
-    // Bounding box of piece
-    this.BBOX_DISTS = [ 1, 2, 1 ];
+    // Number of particles
+    this.particles = ( 'count' in particle_data ) ? particle_data.count : 1000;
 
-    // Lifts the center of the field along the y-axis so it's not inside the
-    // board
-    this.y_base = 1 + .5;
-    this.y_V_MULTIPLIER = this.EDGE_DISTS[1] / this.EDGE_DISTS[0];
+    // Color of particles
+    this.color = ( 'color' in particle_data ) ? particle_data.color : 0x000000;
 
-    // The particle field for the start square
-    this.pfield1 = new THREE.Geometry();
-    // The particle field for the end square
-    this.pfield2 = new THREE.Geometry();
+    // Size of the particle
+    this.p_size = ( 'size' in particle_data ) ? particle_data.size : .1;
 
-    this.pfield1_mat = new THREE.ParticleSystemMaterial(
+    // Should the velocity be randomized or not (will be a percentage of
+    // this.velocity)
+    this.randomize_v = ( 'randomize' in particle_data ) ? particle_data.randomize
+            : false;
+
+    // Center of the particle field
+    this.x_center = location['x'];
+    this.y_center = location['y'];
+    this.z_center = location['z'];
+
+    // The particle field
+    this.pfield = new THREE.Geometry();
+
+    this.pfield_mat = new THREE.ParticleSystemMaterial(
     {
-        color : color_start,
-        size : self.PARTICLE_SIZE
+        color : self.color,
+        size : self.p_size
     });
 
-    this.pfield2_mat = new THREE.ParticleSystemMaterial(
-    {
-        color : color_end,
-        size : self.PARTICLE_SIZE
-    });
+    // Make the particle field
+    if ( field_shape = 'sphere' ) {
+        this.genSphere();
+    }
+    else {
+        console.log("No such field");
+    }
 
-    // Make the start particle field
-    this.genParticles(this.f_x, this.f_z, this.pfield1, false);
-    // Make the end particle field
-    this.genParticles(this.t_x, this.t_z, this.pfield2, true);
+    // Make the system
+    this.psys = new THREE.ParticleSystem(this.pfield, this.pfield_mat);
+    this.psys.sortParticles = true;
+    this.psys.frustumCulled = true;
 
-    // Make the systems
-    this.psys1 = new THREE.ParticleSystem(this.pfield1, this.pfield1_mat);
-    this.psys1.sortParticles = true;
-    this.psys1.frustumCulled = true;
-
-    this.psys2 = new THREE.ParticleSystem(this.pfield2, this.pfield2_mat);
-    this.psys2.sortParticles = true;
-    this.psys2.frustumCulled = true;
-
-    this.psys1.update = function( ) {
-        self.update();
-    };
-    this.psys2.update = function( ) {
+    // Register a frame update function
+    this.psys.update = function( ) {
         self.update();
     };
 
-    scene.add(this.psys1);
-    setTimeout(function( ) {
-        self.update();
-    }, this.updateRate);
+    scene.add(this.psys);
+
+    // cool field decay effects controller
+    if ( decay_values ) {
+        this.decay = true;
+        this.decaying = false;
+        // The chance of a particle being removed every frame after decay_start
+        // ms
+        this.decay_rate = ( 'rate' in decay_values ) ? decay_values.rate : .2;
+        // The velocity change in the particles every frame after decay_start
+        this.decay_velocity = ( 'speed_delta' in decay_values ) ? decay_values.speed_delta
+                : 0;
+        // Time to wait until starting to decay the field
+        this.decay_start = decay_values.start;
+    }
+
+    // Time to kill animation after
+    this.time_end = Date.now() + duration;
 }
 
 /**
- * Calculates the X/Z position based on the position string
+ * Generates a spherical or elliptical shaped particle field
  * 
- * @param position
- *            the position string using standard notation
- * @return A map of {x: x_coord, z: z_coord}
  */
-ParticleField.prototype.calcXZ = function( position ) {
-    // a1 is at -3.5 x, 3.5 z
-    var a1_x = -3.5;
-    var a1_z = 3.5;
-
-    // Calculate offset from a1
-    var map =
-    {
-        'a' : 1,
-        'b' : 2,
-        'c' : 3,
-        'd' : 4,
-        'e' : 5,
-        'f' : 6,
-        'g' : 7,
-        'h' : 8
-    };
-
-    // a1 - dest_pos + base_a1_value == Z coord of position
-    var z = 1 - position[1] + a1_z;
-
-    // dest_pos - a1 + base_a1_value == X coord of position
-    var x = map[position[0]] - 1 + a1_x;
-
-    var res =
-    {
-        'x' : x,
-        'z' : z
-    };
-
-    return res;
-};
-
-/**
- * Generates a new particle field centered on x/z coords and stores it in the
- * pfield variable
- * 
- * @param x_center
- *            The center of the particle field on the x-axis
- * @param z_center
- *            The center of the field on the z-axis
- * @param pfield
- *            The field to build
- * @param explode
- *            true if the field should move from the inside out
- */
-ParticleField.prototype.genParticles = function( x_center, z_center, pfield,
-        explode ) {
+ParticleField.prototype.genSphere = function( ) {
     // The start positions of the particles
     var p_xyz = [ ];
     // The destination positions of the particles
@@ -165,77 +141,79 @@ ParticleField.prototype.genParticles = function( x_center, z_center, pfield,
     var theta2, phi2;
 
     var velocities = [ ];
+    var velocity;
+
+    velocity = this.velocity;
 
     // Make the particles
-    for ( var p = 0; p < this.PARTICLE_COUNT; ++p ) {
+    for ( var p = 0; p < this.particles; ++p ) {
 
+        // Get random angles for generating points on unit circles
         theta = 2 * Math.PI * Math.random();
         phi = 2 * Math.asin(2 * Math.random() - 1);
+
         theta2 = 2 * Math.PI * Math.random();
         phi2 = 2 * Math.asin(2 * Math.random() - 1);
 
-        // Start field radiates from outside in
-        // Generating points on a unit circle
+        // Generating the actual points on a unit circle in 3d space
         p_xyz[0] = Math.cos(theta) * Math.cos(phi);
         p_xyz[1] = Math.sin(theta) * Math.cos(phi);
         p_xyz[2] = Math.sin(phi);
+
         // Generate destination points
         dest_xyz[0] = Math.cos(theta2) * Math.cos(phi2);
         dest_xyz[1] = Math.sin(theta2) * Math.cos(phi2);
         dest_xyz[2] = Math.sin(phi2);
 
-        // Then stretching them along the axes so the match the elipse
-        p_xyz[0] *= this.EDGE_DISTS[0];
-        p_xyz[1] *= this.EDGE_DISTS[1];
-        p_xyz[2] *= this.EDGE_DISTS[2];
+        // Then stretching them along the axes so the match the sphere/ellipse
+        p_xyz[0] *= this.start_bounds[0];
+        p_xyz[1] *= this.start_bounds[1];
+        p_xyz[2] *= this.start_bounds[2];
 
-        dest_xyz[0] *= this.BBOX_DISTS[0];
-        dest_xyz[1] *= this.BBOX_DISTS[1];
-        dest_xyz[2] *= this.BBOX_DISTS[2];
+        dest_xyz[0] *= this.end_bounds[0];
+        dest_xyz[1] *= this.end_bounds[1];
+        dest_xyz[2] *= this.end_bounds[2];
 
+        // Now set up smooth animations to move the particles properly
         for ( var i = 0; i < 3; ++i ) {
+            if ( this.randomize_v ) {
+                // make a random velocity
+                velocity = Math.random() * this.velocity;
+            }
             // This ratio makes sure all particles animate smoothly from
             // start to finish and don't form bands
-            // Negate the velocity so that it moves from start to dest
-            velocities[i] = -this.VELOCITY * Math.abs(dest_xyz[i] - p_xyz[i])
-                    / Math.abs(this.BBOX_DISTS[i] - this.EDGE_DISTS[i]);
+            velocities[i] = velocity * Math.abs(dest_xyz[i] - p_xyz[i])
+                    / Math.abs(this.end_bounds[i] - this.start_bounds[i]);
+            // Correct sign of velocity
+            velocities[i] *= ( Math.abs(dest_xyz[i] - p_xyz[i]) / ( dest_xyz[i] - p_xyz[i] ) );
+            // And normalize
+            velocities[i] *= this.v_normalized[i];
         }
 
         // p_xyz is relative distance from center, convert to absolute
         // position
-        p_xyz[0] += x_center;
-        p_xyz[1] += this.y_base;
-        p_xyz[2] += z_center;
+        p_xyz[0] += this.x_center;
+        p_xyz[1] += this.y_center;
+        p_xyz[2] += this.z_center;
 
         // Same for dest
-        dest_xyz[0] += x_center;
-        dest_xyz[1] += this.y_base;
-        dest_xyz[2] += z_center;
-
-        if ( explode ) {
-            // Moving from the center
-            // Reverse direction
-            var temp = dest_xyz;
-            dest_xyz = p_xyz;
-            p_xyz = temp;
-            for ( var i = 0; i < 3; ++i ) {
-                velocities[i] *= -1;
-            }
-        }
+        dest_xyz[0] += this.x_center;
+        dest_xyz[1] += this.y_center;
+        dest_xyz[2] += this.z_center;
 
         // Set up the vector with the start position
         particle = new THREE.Vector3(p_xyz[0], p_xyz[1], p_xyz[2]);
 
-        // Record velocity, make sure that y updates fast enough
-        particle.velocity = new THREE.Vector3(velocities[0], velocities[1]
-                * this.y_V_MULTIPLIER, velocities[2]);
+        // Record velocity
+        particle.velocity = new THREE.Vector3(velocities[0], velocities[1],
+                velocities[2]);
 
         // Record the destination position
         particle.dests = new THREE.Vector3(dest_xyz[0], dest_xyz[1],
                 dest_xyz[2]);
 
         // Add it to the field
-        pfield.vertices.push(particle);
+        this.pfield.vertices.push(particle);
     }
 };
 
@@ -244,96 +222,25 @@ ParticleField.prototype.genParticles = function( x_center, z_center, pfield,
  */
 ParticleField.prototype.update = function( ) {
 
-    var field = ( this.rendering1 ) ? this.pfield1 : this.pfield2;
-
     var part;
-    var completed = true;
 
-    // TODO Make this faster
-    for ( var p = 0; p < this.PARTICLE_COUNT; ++p ) {
+    // TODO Handle decay
+    for ( var p = 0; p < this.particles; ++p ) {
         // Get a particle
-        part = field.vertices[p];
-        // Stop moving when at dest, this updates velocity appropriately
-        if ( part.dests.x > part.x ) {
-            // Moving in positive x towards destination
-            if ( part.velocity.x < 0 )
-                part.velocity.x = -part.velocity.x;
-
-            part.velocity.x = Math.min(part.velocity.x,
-                    ( part.dests.x - part.x ));
-        }
-        else {
-            // Moving in negative x towards destination
-            // On the offchance the particle slides past the middle, change the
-            // velocity so the calculation behaves properly
-            if ( part.velocity.x > 0 )
-                part.velocity.x = -part.velocity.x;
-
-            part.velocity.x = Math.max(part.velocity.x,
-                    ( part.dests.x - part.x ));
-        }
-        // Handle y movement
-        if ( part.dests.y > part.y ) {
-            // Moving in positive y towards destination
-            if ( part.velocity.y < 0 )
-                part.velocity.y = -part.velocity.y;
-
-            part.velocity.y = Math.min(part.velocity.y,
-                    ( part.dests.y - part.y ));
-        }
-        else {
-            // Moving in negative y towards destination
-            if ( part.velocity.y > 0 )
-                part.velocity.y = -part.velocity.y;
-
-            part.velocity.y = Math.max(part.velocity.y,
-                    ( part.dests.y - part.y ));
-        }
-        // Handle z movement
-        if ( part.dests.z > part.z ) {
-            // Moving in positive z towards destination
-            if ( part.velocity.z < 0 )
-                part.velocity.z = -part.velocity.z;
-
-            part.velocity.z = Math.min(part.velocity.z,
-                    ( part.dests.z - part.z ));
-        }
-        else {
-            // Moving in negative z towards destination
-            if ( part.velocity.z > 0 )
-                part.velocity.z = -part.velocity.z;
-
-            part.velocity.z = Math.max(part.velocity.z,
-                    ( part.dests.z - part.z ));
-        }
-
+        part = this.pfield.vertices[p];
+        
         // Change position
         part.add(part.velocity);
-
-        if ( !( part.velocity.x == 0 && part.velocity.y == 0 && part.velocity.z == 0 ) ) {
-            // A particle is in position
-            completed = false;
-        }
     }
 
-    if ( completed ) {
-        if ( this.rendering1 ) {
-            // Remove the first particle field
-            this.parent.remove(this.psys1);
-            // Add the second
-            this.parent.add(this.psys2);
-            this.rendering1 = false;
-            // Execute s1 callback
-            this.s1_complete();
-        }
-        else {
-            // Use callback to indicate that animation has finished
-            var self = this;
-            this.parent.remove(self.psys2);
-
-            setTimeout(function( ) {
-                self.s2_complete();
-            }, this.endWait);
-        }
+    // Check if field is done
+    if ( Date.now() >= this.time_end ) {
+        // Remove the field
+        this.parent.remove(this.psys);
+        var self = this;
+        // Execute the callback
+        setTimeout(function( ) {
+            self.on_complete();
+        }, this.delay);
     }
 };

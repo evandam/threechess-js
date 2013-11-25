@@ -26,11 +26,11 @@ function Board( scene, afterload ) {
 
     // Load in the Board data itself
     loader.load('models/boardBlocks.obj', 'models/boardBlocks.mtl', function(
-            object) {
-        
+            object ) {
+
         var texture = THREE.ImageUtils.loadTexture("textures/marble.jpg");
         object.traverse(function( child ) {
-            if (child instanceof THREE.Mesh) {
+            if ( child instanceof THREE.Mesh ) {
                 child.material.map = texture;
                 child.material.color.setRGB(1, 1, 1);
             }
@@ -40,7 +40,7 @@ function Board( scene, afterload ) {
         // black spaces
         var cloned = cloneObj(object);
         cloned.traverse(function( child ) {
-            if (child instanceof THREE.Mesh) {
+            if ( child instanceof THREE.Mesh ) {
                 child.material.map = texture;
                 child.material.color.setRGB(0.1, 0.1, 0.1);
             }
@@ -59,9 +59,10 @@ function Board( scene, afterload ) {
             // load a texture, set wrap mode to repeat
             var texture = THREE.ImageUtils.loadTexture("textures/wood.jpg");
 
-            object.traverse(function (child) {
-                if (child instanceof THREE.Mesh) {
-                    //child.material.color.setRGB(133 / 256, 94 / 256, 66 / 256);
+            object.traverse(function( child ) {
+                if ( child instanceof THREE.Mesh ) {
+                    // child.material.color.setRGB(133 / 256, 94 / 256, 66 /
+                    // 256);
                     child.material.map = texture;
                 }
             });
@@ -167,32 +168,21 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
                 self.executeMove();
         };
 
-        // Map of chars to numbers for get dy
-        // maybe could be cleaned up later
-        var map =
-        {
-            'a' : 1,
-            'b' : 2,
-            'c' : 3,
-            'd' : 4,
-            'e' : 5,
-            'f' : 6,
-            'g' : 7,
-            'h' : 8
-        };
+        var start_coords = this.calcXYZ(start);
+        var end_coords = this.calcXYZ(end);
 
-        var getDZ = function( s, e ) {
-            return -( e - s );
-        };
-
-        var getDX = function( s, e ) {
-            return map[e] - map[s];
-        };
+        var dz = end_coords['z'] - start_coords['z'];
+        var dx = end_coords['x'] - start_coords['x'];
 
         // Get the piece from the piece map
         var piece = this.pieces[start];
         // Capturing if dest is already occupied
         var capturing = ( end in self.pieces );
+
+        var endcolor = 0xFFFFFF;
+        if ( capturing ) {
+            endcolor = 0xFF0000;
+        }
 
         // Function to execute after first animation completes
         var inbetween = function( ) {
@@ -201,21 +191,39 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
                 self.board.remove(self.pieces[end]);
                 delete self.pieces[end];
             }
+            // Generate the new particle field
+            new ParticleField(self.calcXYZ(end), self.board, nxtMove, 500,
+                    250, 'sphere',
+                    {
+                        'start' : [ 1, 2, 1 ],
+                        'end' : [ 4, 8, 4 ]
+                    },
+                    {
+                        'velocity' : .2,
+                        'count' : 5000,
+                        'color' : endcolor
+                    });
+            piece.move(dx, dz);
 
-            piece.move(getDX(start[0], end[0]), getDZ(start[1], end[1]));
             // Remove the old piece @ old position
             delete self.pieces[start];
             // Put it in the new position
             self.pieces[end] = piece;
+
         };
 
-        var endcolor = 0xFFFFFF;
-        if ( capturing ) {
-            endcolor = 0xFF0000;
-        }
         // Make the pretty particle effects
-        new ParticleField(start, end, 0x0, endcolor, this.board, inbetween,
-                nxtMove);
+        new ParticleField(self.calcXYZ(start), self.board, inbetween, 1000, 0,
+                'sphere',
+                {
+                    'start' : [ 4, 8, 4 ],
+                    'end' : [ 1, 2, 1 ]
+                },
+                {
+                    'velocity' : .1,
+                    'count' : 5000,
+                    'color' : 0x0
+                });
         return true;
     }
     else {
@@ -223,6 +231,47 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
         console.log(this.pieces);
         return false;
     }
+};
+
+/**
+ * Calculates the X/Z position based on the position string
+ * 
+ * @param position
+ *            the position string using standard notation
+ * @return A map of {x: x_coord, z: z_coord}
+ */
+Board.prototype.calcXYZ = function( position ) {
+    // a1 is at -3.5 x, 3.5 z
+    var a1_x = -3.5;
+    var a1_z = 3.5;
+
+    // Calculate offset from a1
+    var map =
+    {
+        'a' : 1,
+        'b' : 2,
+        'c' : 3,
+        'd' : 4,
+        'e' : 5,
+        'f' : 6,
+        'g' : 7,
+        'h' : 8
+    };
+
+    // a1 - dest_pos + base_a1_value == Z coord of position
+    var z = 1 - position[1] + a1_z;
+
+    // dest_pos - a1 + base_a1_value == X coord of position
+    var x = map[position[0]] - 1 + a1_x;
+
+    var res =
+    {
+        'x' : x,
+        'y' : 1.5,
+        'z' : z
+    };
+
+    return res;
 };
 
 /**
@@ -248,7 +297,7 @@ Board.prototype.loadPieces = function( afterload ) {
 
     var setWhite = function( object ) {
         object.traverse(function( child ) {
-            if (child instanceof THREE.Mesh) {
+            if ( child instanceof THREE.Mesh ) {
                 child.material.map = texture;
                 child.material.color.setRGB(0.9, 0.9, 0.9);
                 child.material.shininess = 100;
@@ -258,7 +307,7 @@ Board.prototype.loadPieces = function( afterload ) {
 
     var setBlack = function( object ) {
         object.traverse(function( child ) {
-            if (child instanceof THREE.Mesh) {
+            if ( child instanceof THREE.Mesh ) {
                 child.material.map = texture;
                 child.material.color.setRGB(.10, .10, .10);
             }
@@ -502,7 +551,7 @@ Board.prototype.loadPieces = function( afterload ) {
                     // and the second
                     knight = knight.clone();
                     knight.move = kMove;
-                    knight.name = "N"
+                    knight.name = "N";
                     knight.rotate = dorotation;
                     knight.resetRotation = resetrotation;
 
