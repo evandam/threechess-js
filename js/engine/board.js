@@ -10,8 +10,17 @@ function Board( scene, afterload ) {
     // No generated pieces yet
     this.pieces = { };
 
+    // Captured pieces positions
+    // TODO Separate w/b
+    this.captureXMin = -4.5;
+    this.captureXMax = 4.5;
+    this.captureZMin = -4.5;
+    this.captureZMax = 4.5;
+    this.captureX = -4.5;
+    this.captureZ = 4.5;
+
     this.boardFrame = null;
-    this.boardSquares = [];
+    this.boardSquares = [ ];
 
     this.moveQueue = [ ];
     // True if the board is executing a move sequence
@@ -30,7 +39,7 @@ function Board( scene, afterload ) {
     // Load in the Board data itself
     loader.load('models/boardBlocks.obj', 'models/boardBlocks.mtl', function(
             object ) {
-        
+
         var texture = THREE.ImageUtils.loadTexture("textures/marble.jpg");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(4, 4);
@@ -64,7 +73,8 @@ function Board( scene, afterload ) {
             // Dark wood: 133;94;66 RGB
 
             // load a texture, set wrap mode to repeat
-            var texture = THREE.ImageUtils.loadTexture("textures/BloodMarble.png");
+            var texture = THREE.ImageUtils
+                    .loadTexture("textures/BloodMarble.png");
             texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
             texture.repeat.set(16, 16);
             object.traverse(function( child ) {
@@ -84,7 +94,7 @@ function Board( scene, afterload ) {
 
     // Add it to the passed-in scene
     scene.add(this.board);
-    
+
 };
 
 /**
@@ -121,6 +131,11 @@ Board.prototype.executeMove = function( ) {
         var move = this.moveQueue.shift();
         var piece = move['p'];
         move = move['m'];
+        var promote = undefined;
+        if ( move.length == 5 ) {
+            // It's a promotion
+            promote = move[4];
+        }
 
         // Check for castling
         if ( piece == "K" && ( this.CASTLING_MOVES.indexOf(move) != -1 ) ) {
@@ -132,7 +147,7 @@ Board.prototype.executeMove = function( ) {
 
             setTimeout(function( ) {
                 // Moving the king
-                self.movePiece(s, e, true);
+                self.movePiece(s, e, promote, true);
             }, 0);
 
             // Moving the rook
@@ -145,7 +160,7 @@ Board.prototype.executeMove = function( ) {
         }
         else {
             // Cut into first two/last two characters of move string and execute
-            if ( !this.movePiece(move.slice(0, 2), move.slice(2)) ) {
+            if ( !this.movePiece(move.slice(0, 2), move.slice(2)), promote ) {
                 console.log("move failed: " + piece + move);
             }
         }
@@ -167,7 +182,7 @@ Board.prototype.executeMove = function( ) {
  *            Indicates if the next move waiting after this one should be
  *            executed. Used for castling
  */
-Board.prototype.movePiece = function( start, end, stop_after ) {
+Board.prototype.movePiece = function( start, end, promotion, stop_after ) {
 
     if ( start in this.pieces ) {
         var self = this;
@@ -188,6 +203,7 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
         // Get the piece from the piece map
         var piece = this.pieces[start];
         // Capturing if dest is already occupied
+        // TODO Handle en passant 
         var capturing = ( end in self.pieces );
 
         var endcolor = 0xFFFFFF;
@@ -198,10 +214,64 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
         // Function to execute after first animation completes
         var inbetween = function( ) {
             if ( capturing ) {
-                // Remove the renderable object
-                // TODO Move piece to capture area
-                self.board.remove(self.pieces[end]);
+                var cpiece = self.pieces[end];
                 delete self.pieces[end];
+
+                var coords =
+                {
+                    x : self.captureX,
+                    y : 1.5,
+                    z : self.captureZ
+                };
+
+                // Make a particle cloud to show the piece landing in the
+                // capture area
+                new ParticleField(coords, self.board, undefined, -1, 0,
+                        'sphere',
+                        {
+                            // Bounding boxes for external/internal
+                            'start' : [ .5, 1, .5 ],
+                            'end' : [ 2, 4, 2 ],
+                        },
+                        {
+                            // Speed, # of particles, color, size
+                            'velocity' : .035,
+                            'count' : 2000,
+                            'color' : endcolor,
+                            'size' : .2,
+                            'fade_rate' : -0.01,
+                            'alpha' : .02,
+                        },
+                        {
+                            'start' : 20,
+                            'rate' : .1,
+                        });
+
+                // Move piece to capture area
+                // Calculate distance
+                var cdx = self.captureX - end_coords.x;
+                var cdz = self.captureZ - end_coords.z;
+
+                // Move piece
+                cpiece.move(cdx, cdz);
+
+                if ( self.captureX == self.captureXMax ) {
+                    // Placed a piece in the last position on x
+                    self.captureX = self.captureXMin;
+                    self.captureZ -= 1;
+                }
+                else {
+                    if ( !( self.captureZ == self.captureZMin )
+                            && !( self.captureZ == self.captureZMax ) ) {
+                        // Placing on edge
+                        self.captureX = self.captureXMax;
+                    }
+                    else {
+                        // Placing on front/back row
+                        self.captureX += 1;
+                    }
+                }
+
             }
 
             // Generate the destination particle field
@@ -226,6 +296,7 @@ Board.prototype.movePiece = function( start, end, stop_after ) {
                         'rate' : .1,
                     });
 
+            // TODO Handle promotions
             piece.move(dx, dz);
 
             // Remove the old piece @ old position
@@ -335,9 +406,9 @@ Board.prototype.loadPieces = function( afterload ) {
     var texture = THREE.ImageUtils.loadTexture("textures/marble.jpg");
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(4, 4);
-    var setWhite = function (object) {
+    var setWhite = function( object ) {
         object.traverse(function( child ) {
-            if (child instanceof THREE.Mesh) {
+            if ( child instanceof THREE.Mesh ) {
                 child.material.map = texture;
                 child.material.color.setRGB(0.9, 0.9, 0.9);
             }
@@ -841,44 +912,47 @@ Board.prototype.animate = function( ) {
 
 // Have different texture "themes"
 // theme can be either "marble" or "wood"
-Board.prototype.switchTheme = function (theme) {
-    if (theme == "wood") {
+Board.prototype.switchTheme = function( theme ) {
+    if ( theme == "wood" ) {
         // update datgui var
         view.Marble = false;
         view.Wood = true;
 
-        var texture = THREE.ImageUtils.loadTexture("textures/grunge/greyscale_natural_grunge1.jpg");
+        var texture = THREE.ImageUtils
+                .loadTexture("textures/grunge/greyscale_natural_grunge1.jpg");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(8, 8);
-        this.boardFrame.traverse(function (child) {
-            if (child instanceof THREE.Mesh) {
+        this.boardFrame.traverse(function( child ) {
+            if ( child instanceof THREE.Mesh ) {
                 child.material.map = texture;
                 child.material.color.setRGB(0.7, 0.2, 0.1);
             }
         });
 
-        var texture = THREE.ImageUtils.loadTexture("textures/grunge/greyscale_natural_grunge1.jpg");
+        var texture = THREE.ImageUtils
+                .loadTexture("textures/grunge/greyscale_natural_grunge1.jpg");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(1, 1);
-        this.boardSquares[0].traverse(function (child) {
-            if (child instanceof THREE.Mesh) {
+        this.boardSquares[0].traverse(function( child ) {
+            if ( child instanceof THREE.Mesh ) {
                 child.material.map = texture;
                 child.material.color.setRGB(0.7, 0.2, 0.1);
             }
         });
-        this.boardSquares[1].traverse(function (child) {
-            if (child instanceof THREE.Mesh) {
+        this.boardSquares[1].traverse(function( child ) {
+            if ( child instanceof THREE.Mesh ) {
                 child.material.map = texture;
                 child.material.color.setRGB(0.1, 0.0, 0.0);
             }
         });
 
-        texture = THREE.ImageUtils.loadTexture("textures/grunge/greyscale_natural_grunge4.jpg");
+        texture = THREE.ImageUtils
+                .loadTexture("textures/grunge/greyscale_natural_grunge4.jpg");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(4, 4);
-        for (var piece in this.pieces) {
-            this.pieces[piece].traverse(function (child) {
-                if (child instanceof THREE.Mesh) {
+        for ( var piece in this.pieces ) {
+            this.pieces[piece].traverse(function( child ) {
+                if ( child instanceof THREE.Mesh ) {
                     child.material.map = texture;
                 }
             });
@@ -892,8 +966,8 @@ Board.prototype.switchTheme = function (theme) {
         var texture = THREE.ImageUtils.loadTexture("textures/BloodMarble.png");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(16, 16);
-        this.boardFrame.traverse(function (child) {
-            if (child instanceof THREE.Mesh) {
+        this.boardFrame.traverse(function( child ) {
+            if ( child instanceof THREE.Mesh ) {
                 child.material.map = texture;
                 child.material.color.setRGB(0.0, 0.1, 0.1);
             }
@@ -902,14 +976,14 @@ Board.prototype.switchTheme = function (theme) {
         var texture = THREE.ImageUtils.loadTexture("textures/marble.jpg");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(1, 1);
-        this.boardSquares[0].traverse(function (child) {
-            if (child instanceof THREE.Mesh) {
+        this.boardSquares[0].traverse(function( child ) {
+            if ( child instanceof THREE.Mesh ) {
                 child.material.map = texture;
                 child.material.color.setRGB(0.9, 0.9, 0.9);
             }
         });
-        this.boardSquares[1].traverse(function (child) {
-            if (child instanceof THREE.Mesh) {
+        this.boardSquares[1].traverse(function( child ) {
+            if ( child instanceof THREE.Mesh ) {
                 child.material.map = texture;
                 child.material.color.setRGB(0.1, 0.1, 0.1);
             }
@@ -918,9 +992,9 @@ Board.prototype.switchTheme = function (theme) {
         texture = THREE.ImageUtils.loadTexture("textures/marble1.jpg");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(4, 4);
-        for (var piece in this.pieces) {
-            this.pieces[piece].traverse(function (child) {
-                if (child instanceof THREE.Mesh) {
+        for ( var piece in this.pieces ) {
+            this.pieces[piece].traverse(function( child ) {
+                if ( child instanceof THREE.Mesh ) {
                     child.material.map = texture;
                 }
             });
