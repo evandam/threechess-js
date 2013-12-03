@@ -14,6 +14,7 @@ function Controller( scene ) {
     // root of url - append the game id
     this.root = 'http://www.bencarle.com/chess/cg/'
     this.url;
+    this.gameover;
 };
 
 /**
@@ -27,7 +28,6 @@ function Controller( scene ) {
 Controller.prototype.connectTo = function( gameId ) {
     var self = this;
     self.url = self.root + gameId;
-    var gameover;
     // Clear the current queue of moves
     // And queue up the moves from the server
     // TODO: need to reset the pieces
@@ -36,8 +36,8 @@ Controller.prototype.connectTo = function( gameId ) {
         async: false,
         dataType: 'json',
         success: function (data) {
-            this.lastmovenumber = data.lastmovenumber;
-            gameover = data.gameover;
+            self.lastmovenumber = data.lastmovenumber;
+            self.gameover = data.gameover;
             self.board.moveQueue = [];
             for(var i in data.moves) {
                 self.board.queueMove(data.moves[i][0], data.moves[i].slice(1));
@@ -47,7 +47,7 @@ Controller.prototype.connectTo = function( gameId ) {
 
     // Poll for next move every second, stop when gameover
     var intervalId = setInterval(function () {
-        if (!gameover) {
+        if (!self.gameover) {
             self.poll();
         }
         else
@@ -85,8 +85,22 @@ Controller.prototype.poll = function () {
         // there has been a move since the server was last polled
         if (data.lastmovenumber != self.lastmovenumber) {
             // queue the last move to be animated
+            console.log(data);
             var i = data.moves.length - 1;
             self.board.queueMove(data.moves[i][0], data.moves[i].slice(1));
         }
-    });
+
+        self.lastmovenumber = data.lastmovenumber;
+        self.gameover = data.gameover;
+
+        // update clocks
+        var mins = Math.floor(data.whitetime / 60);
+        var secs = Math.floor(data.whitetime % 60);
+        $('#whiteTime').text(mins + ':' + secs);
+
+        mins = Math.floor(data.blacktime / 60);
+        secs = Math.floor(data.blacktime % 60);
+        $('#blackTime').text(mins + ':' + secs);
+
+    }, 'json');
 };
