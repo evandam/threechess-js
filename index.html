@@ -107,9 +107,9 @@
             view = {
                 "Marble": true,
                 "Wood": false,
-                "URL": 'http://www.bencarle.com/chess/cg/340',
+                "GameID": 340,
                 "Start game": function () {
-                    controller.connectTo(this.URL);
+                    controller.connectTo(this.GameID);
                 }
             };
 
@@ -128,10 +128,10 @@
                 controller.board.switchTheme('wood');
             });
 
-            root.add(view, 'URL');
+            root.add(view, 'GameID');
             root.add(view, 'Start game');
+            themes.open();
             root.open();
-
         }
 
         function cloneObj(obj) {

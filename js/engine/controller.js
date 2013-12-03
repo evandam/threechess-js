@@ -7,10 +7,13 @@ function Controller( scene ) {
     // Hold a reference to it so it can be manipulated later
     var self = this;
     this.board = new Board(scene, function( ) {
-        setTimeout(function( ) {
+        /*setTimeout(function( ) {
             self.connectTo();
-        }, 2000);
+        }, 2000);*/
     });
+    // root of url - append the game id
+    this.root = 'http://www.bencarle.com/chess/cg/'
+    this.url;
 };
 
 /**
@@ -21,26 +24,40 @@ function Controller( scene ) {
  * @param url
  *            The url to connect to
  */
-Controller.prototype.connectTo = function( url ) {
+Controller.prototype.connectTo = function( gameId ) {
     var self = this;
-    if ( url ) {
-        // Clear the current queue of moves
-        // And queue up the moves from the server
-        // TODO: need to reset the pieces
-        $.ajax({
-            url: url,
-            async: false,
-            dataType: 'json',
-            success: function (data) {
-                console.log(data.moves);
-                self.board.moveQueue = [];
-                for(var i in data.moves) {
-                    self.board.queueMove(data.moves[i][0], data.moves[i].slice(1));
-                }
+    self.url = self.root + gameId;
+    var gameover;
+    // Clear the current queue of moves
+    // And queue up the moves from the server
+    // TODO: need to reset the pieces
+    $.ajax({
+        url: self.url,
+        async: false,
+        dataType: 'json',
+        success: function (data) {
+            console.log(data.moves);
+            this.lastmovenumber = data.lastmovenumber;
+            gameover = data.gameover;
+            console.log(gameover);
+            self.board.moveQueue = [];
+            for(var i in data.moves) {
+                self.board.queueMove(data.moves[i][0], data.moves[i].slice(1));
             }
-        });
-    }
-    else {
+        }
+    });
+
+    // Poll for next move every second, stop when gameover
+    var intervalId = setInterval(function () {
+        if (!gameover) {
+            self.poll();
+        }
+        else
+            clearInterval(intervalId);
+    }, 1000);
+
+        
+    /*else {
         // TODO Set up debug interactions
         // Run the example game
         var moves = [ "Pe2e4", "Pd7d6", "Pd2d4", "Ng8f6", "Nb1c3", "Pg7g6",
@@ -60,5 +77,18 @@ Controller.prototype.connectTo = function( url ) {
         for ( var m = 0; m < moves.length; ++m ) {
             this.board.queueMove(moves[m][0], moves[m].slice(1));
         }
-    }
+    }*/
+};
+
+// Continuously poll the server until the game is over and queue up the latest move
+Controller.prototype.poll = function () {
+    var self = this;
+    $.get(self.url, function (data) {
+        // there has been a move since the server was last polled
+        if (data.lastmovenumber != self.lastmovenumber) {
+            // queue the last move to be animated
+            var i = data.moves.length - 1;
+            self.board.queueMove(data.moves[i][0], data.moves[i].slice(1));
+        }
+    });
 };
