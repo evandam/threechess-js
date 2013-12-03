@@ -72,18 +72,20 @@
             var ambient = new THREE.AmbientLight(0x101010);
             scene.add(ambient);
             var directionalLight = new THREE.DirectionalLight(0xffeedd);
-            directionalLight.position.set(0.5, 2, 1).normalize();
+            directionalLight.position.set(0.5, 2, 5);
             scene.add(directionalLight);
+
             // add another light
-            var newLight = new THREE.DirectionalLight(0xffffaa);
-            newLight.position.set(0, 1, -5).normalize();
-            scene.add(newLight);
+            var spotLight = new THREE.SpotLight(0xffffff);
+            spotLight.position.set(-5, 7, -3);
+            scene.add(spotLight);
             
             //Get a new game controller, also builds the board
             controller = new Controller(scene);
             
             renderer = new THREE.WebGLRenderer();
             renderer.setSize(window.innerWidth, window.innerHeight);
+
             container.appendChild(renderer.domElement);
 
             window.addEventListener('resize', onWindowResize, false);
