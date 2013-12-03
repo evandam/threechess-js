@@ -36,10 +36,8 @@ Controller.prototype.connectTo = function( gameId ) {
         async: false,
         dataType: 'json',
         success: function (data) {
-            console.log(data.moves);
             this.lastmovenumber = data.lastmovenumber;
             gameover = data.gameover;
-            console.log(gameover);
             self.board.moveQueue = [];
             for(var i in data.moves) {
                 self.board.queueMove(data.moves[i][0], data.moves[i].slice(1));
