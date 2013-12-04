@@ -12,7 +12,7 @@ function Controller( scene ) {
         }, 2000);*/
     });
     // root of url - append the game id
-    this.root = 'http://www.bencarle.com/chess/cg/'
+    this.root = 'https://10.11.18.65/cg/chess/';
     this.url;
     this.gameover;
 };
