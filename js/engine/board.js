@@ -159,8 +159,11 @@ Board.prototype.executeMove = function( ) {
                 this.movePiece('h' + e[1], 'f' + e[1]);
         }
         else {
+            var s = move.slice(0, 2);
+            var e = ( promote ) ? move.slice(2, 5) : move.slice(2);
+
             // Cut into first two/last two characters of move string and execute
-            if ( !this.movePiece(move.slice(0, 2), move.slice(2)), promote ) {
+            if ( !this.movePiece(s, e, promote) ) {
                 console.log("move failed: " + piece + move);
             }
         }
@@ -178,6 +181,8 @@ Board.prototype.executeMove = function( ) {
  *            The start position of the piece in the form "a7" etc.
  * @param end
  *            The end position of the piece
+ * @param promotion
+ *            The piece to promote to if it is a promotion
  * @param stop_after
  *            Indicates if the next move waiting after this one should be
  *            executed. Used for castling
@@ -203,7 +208,7 @@ Board.prototype.movePiece = function( start, end, promotion, stop_after ) {
         // Get the piece from the piece map
         var piece = this.pieces[start];
         // Capturing if dest is already occupied
-        // TODO Handle en passant 
+        // TODO Handle en passant
         var capturing = ( end in self.pieces );
 
         var endcolor = 0xFFFFFF;
