@@ -30,8 +30,108 @@ function Board( scene, afterload ) {
     this.board = new THREE.Object3D();
     var board = this.board;
     this.CASTLING_MOVES = [ 'e8c8', 'e8g8', 'e1g1', 'e1c1' ];
+
+    // Stores cloneable pieces/clone functions for promotion
+    // indexed by piece character, "R", "N", "Q", "B" for
+    // rook, knight, queen, bishop, with "W", or "B" for the color
+    // Initialized in loadPieces, called using
+    // this.cloneLibrary["R"]["W"(position) where position is a square string
+    // e.g. a1
+    this.cloneLibrary =
+    {
+        "R" : { },
+        "Q" : { },
+        "N" : { },
+        "B" : { }
+    };
+
     // Closure for adding pieces to the board
     var self = this;
+
+    var endcolor = 0xFFFFFF;
+
+    // Data for the particle cloud generated at the destination location of
+    // a captured piece
+    this.capture_ldata =
+    {
+        se :
+        {
+            // Bounding boxes for external/internal
+            'start' : [ .5, 1, .5 ],
+            'end' : [ 2, 4, 2 ],
+        },
+        cloud :
+        {
+            // Speed, # of particles, color, size
+            'velocity' : .035,
+            'count' : 2000,
+            'color' : endcolor,
+            'size' : .2,
+            'fade_rate' : -0.01,
+            'alpha' : .02,
+        },
+        decay :
+        {
+            'start' : 20,
+            'rate' : .1,
+        }
+    };
+
+    // Particle cloud to generate at piece destination for movement
+    this.move_ldata =
+    {
+        se :
+        {
+            // Bounding boxes for external/internal
+            'start' : [ 1, 2, 1 ],
+            'end' : [ 2, 18, 2 ],
+        },
+        cloud :
+        {
+            // Speed, # of particles, color, size
+            'velocity' : .16,
+            'count' : 2000,
+            'color' : endcolor,
+            'size' : .1,
+        },
+        decay :
+        {
+            // start decay after 7 frames, 10% of particles
+            // culled per frame
+            'start' : 7,
+            'rate' : .1,
+        }
+    };
+
+    this.move_sdata =
+    {
+        se :
+        {
+            // Bounding boxes for external/internal
+            'start' : [ 2, 4, 2 ],
+            'end' : [ .5, 1, .5 ],
+        },
+        cloud :
+        {
+            // Speed, # of particles, color, size
+            'velocity' : .055,
+            'count' : 2000,
+            'color' : 0x0,
+            'size' : .4,
+            'fade_rate' : -0.01,
+            'alpha' : .02,
+        },
+        decay :
+        {
+            'start' : 50,
+            'speed_delta' :
+            {
+                'x' : .02,
+                'y' : .02,
+                'z' : .02
+            },
+        }
+    };
 
     // Get a loader for our models
     var loader = new THREE.OBJMTLLoader();
@@ -183,11 +283,15 @@ Board.prototype.executeMove = function( ) {
  *            The end position of the piece
  * @param promotion
  *            The piece to promote to if it is a promotion
+ * @param code
+ *            The piece code, eg "Pawn"
+ * @param promotion
+ *            Set to the string for the promotion if promoting
  * @param stop_after
  *            Indicates if the next move waiting after this one should be
  *            executed. Used for castling
  */
-Board.prototype.movePiece = function( start, end, promotion, stop_after ) {
+Board.prototype.movePiece = function( start, end, code, promotion, stop_after ) {
 
     if ( start in this.pieces ) {
         var self = this;
@@ -208,19 +312,39 @@ Board.prototype.movePiece = function( start, end, promotion, stop_after ) {
         // Get the piece from the piece map
         var piece = this.pieces[start];
         // Capturing if dest is already occupied
-        // TODO Handle en passant
         var capturing = ( end in self.pieces );
+
+        var enpassant = false;
+
+        if ( code == "P" && !capturing && end_coords['x'] != start_coords['x'] ) {
+            // It's a pawn, it moved diagonal, AND there is no piece at its
+            // destination
+            // Therefore it's an enpassant capture
+            enpassant = true;
+        }
 
         var endcolor = 0xFFFFFF;
         if ( capturing ) {
             endcolor = 0xFF0000;
         }
 
+        // Update cloud colors
+        self.move_ldata.cloud.color = endcolor;
+        self.capture_ldata.cloud.color = endcolor;
+
         // Function to execute after first animation completes
         var inbetween = function( ) {
             if ( capturing ) {
-                var cpiece = self.pieces[end];
-                delete self.pieces[end];
+
+                if ( !enpassant ) {
+                    // Normal capture, just pick the piece at the dest
+                    var cpiece = self.pieces[end];
+                    delete self.pieces[end];
+                }
+                else {
+                    // Pick the piece in the appropriate direction
+
+                }
 
                 var coords =
                 {
@@ -232,25 +356,8 @@ Board.prototype.movePiece = function( start, end, promotion, stop_after ) {
                 // Make a particle cloud to show the piece landing in the
                 // capture area
                 new ParticleField(coords, self.board, undefined, -1, 0,
-                        'sphere',
-                        {
-                            // Bounding boxes for external/internal
-                            'start' : [ .5, 1, .5 ],
-                            'end' : [ 2, 4, 2 ],
-                        },
-                        {
-                            // Speed, # of particles, color, size
-                            'velocity' : .035,
-                            'count' : 2000,
-                            'color' : endcolor,
-                            'size' : .2,
-                            'fade_rate' : -0.01,
-                            'alpha' : .02,
-                        },
-                        {
-                            'start' : 20,
-                            'rate' : .1,
-                        });
+                        'sphere', self.capture_ldata.se,
+                        self.capture_ldata.cloud, self.capture_ldata.decay);
 
                 // Move piece to capture area
                 // Calculate distance
@@ -281,28 +388,16 @@ Board.prototype.movePiece = function( start, end, promotion, stop_after ) {
 
             // Generate the destination particle field
             new ParticleField(self.calcXYZ(end), self.board, nxtMove, -1, 250,
-                    'sphere',
-                    {
-                        // Bounding boxes for external/internal
-                        'start' : [ 1, 2, 1 ],
-                        'end' : [ 2, 18, 2 ],
-                    },
-                    {
-                        // Speed, # of particles, color, size
-                        'velocity' : .16,
-                        'count' : 2000,
-                        'color' : endcolor,
-                        'size' : .1,
-                    },
-                    {
-                        // start decay after 7 frames, 10% of particles
-                        // culled per frame
-                        'start' : 7,
-                        'rate' : .1,
-                    });
+                    'sphere', self.move_ldata.se, self.move_ldata.cloud,
+                    self.move_ldata.decay);
 
-            // TODO Handle promotions
-            piece.move(dx, dz);
+            // Normal move
+            if ( !promotion ) {
+                piece.move(dx, dz);
+            }
+            else {
+                // Do the promotion
+            }
 
             // Remove the old piece @ old position
             delete self.pieces[start];
@@ -315,30 +410,8 @@ Board.prototype.movePiece = function( start, end, promotion, stop_after ) {
         // Make a cloud, expand outwards, after finish: call inbetween, max
         // duration of effect is 1s, wait 0ms before executing inbetween
         new ParticleField(self.calcXYZ(start), self.board, inbetween, 60, 0,
-                'sphere',
-                {
-                    // Bounding boxes for external/internal
-                    'start' : [ 2, 4, 2 ],
-                    'end' : [ .5, 1, .5 ],
-                },
-                {
-                    // Speed, # of particles, color, size
-                    'velocity' : .055,
-                    'count' : 2000,
-                    'color' : 0x0,
-                    'size' : .4,
-                    'fade_rate' : -0.01,
-                    'alpha' : .02,
-                },
-                {
-                    'start' : 50,
-                    'speed_delta' :
-                    {
-                        'x' : .02,
-                        'y' : .02,
-                        'z' : .02
-                    },
-                });
+                'sphere', self.move_sdata.se, self.move_sdata.cloud,
+                self.move_sdata.decay);
         return true;
     }
     else {
@@ -579,6 +652,32 @@ Board.prototype.loadPieces = function( afterload ) {
             self.pieces[pos.join('')] = rook;
             pieceCount++;
 
+            // row 1 if white
+            var color = ( pos[1] == 1 ) ? "W" : "B";
+
+            // Store a clone function so it can be used in promotions
+            self.cloneLibrary["R"][color] = function( position ) {
+                // this.rook will be set outside of this later
+                var rook = this.rook.clone();
+                rook.move = move;
+                rook.name = "R";
+
+                // Start is always going to be pos, since this.rook is the rook
+                // previous
+                var start_coords = this.calcXYZ(pos.join(''));
+                var end_coords = this.calcXYZ(position);
+
+                var dz = end_coords['z'] - start_coords['z'];
+                var dx = end_coords['x'] - start_coords['x'];
+
+                // Put the rook in the right place
+                rook.move(dx, dz);
+
+                self.pieces[position] = rook;
+            };
+            // Set this.rook in function
+            self.cloneLibrary["R"][color].rook = rook;
+
             checkLoaded();
         });
     };
@@ -684,6 +783,32 @@ Board.prototype.loadPieces = function( afterload ) {
                     self.pieces[pos.join('')] = knight;
                     pieceCount++;
 
+                    // row 1 if white
+                    var color = ( pos[1] == 1 ) ? "W" : "B";
+
+                    // Store a clone function so it can be used in promotions
+                    self.cloneLibrary["N"][color] = function( position ) {
+                        // this.knight will be set outside of this later
+                        var knight = this.knight.clone();
+                        knight.move = move;
+                        knight.name = "N";
+
+                        // Start is always going to be pos, since this.knight is
+                        // the knight previous
+                        var start_coords = this.calcXYZ(pos.join(''));
+                        var end_coords = this.calcXYZ(position);
+
+                        var dz = end_coords['z'] - start_coords['z'];
+                        var dx = end_coords['x'] - start_coords['x'];
+
+                        // Put the knight in the right place
+                        knight.move(dx, dz);
+
+                        self.pieces[position] = knight;
+                    };
+                    // Set this.knight in function
+                    self.cloneLibrary["N"][color].knight = knight;
+
                     checkLoaded();
                 });
     };
@@ -785,6 +910,32 @@ Board.prototype.loadPieces = function( afterload ) {
                     self.pieces[pos.join('')] = bishop;
                     pieceCount++;
 
+                    // row 1 if white
+                    var color = ( pos[1] == 1 ) ? "W" : "B";
+
+                    // Store a clone function so it can be used in promotions
+                    self.cloneLibrary["B"][color] = function( position ) {
+                        // this.bishop will be set outside of this later
+                        var bishop = this.bishop.clone();
+                        bishop.move = move;
+                        bishop.name = "B";
+
+                        // Start is always going to be pos, since this.bishop is
+                        // the bishop previous
+                        var start_coords = this.calcXYZ(pos.join(''));
+                        var end_coords = this.calcXYZ(position);
+
+                        var dz = end_coords['z'] - start_coords['z'];
+                        var dx = end_coords['x'] - start_coords['x'];
+
+                        // Put the bishop in the right place
+                        bishop.move(dx, dz);
+
+                        self.pieces[position] = bishop;
+                    };
+                    // Set this.bishop in function
+                    self.cloneLibrary["B"][color].bishop = bishop;
+
                     checkLoaded();
                 });
     };
@@ -840,6 +991,32 @@ Board.prototype.loadPieces = function( afterload ) {
             board.add(queen);
             self.pieces[pos.join('')] = queen;
             pieceCount++;
+
+            // row 1 if white
+            var color = ( pos[1] == 1 ) ? "W" : "B";
+
+            // Store a clone function so it can be used in promotions
+            self.cloneLibrary["Q"][color] = function( position ) {
+                // this.queen will be set outside of this later
+                var queen = this.queen.clone();
+                queen.move = move;
+                queen.name = "Q";
+
+                // Start is always going to be pos, since this.queen is
+                // the queen previous
+                var start_coords = this.calcXYZ(pos.join(''));
+                var end_coords = this.calcXYZ(position);
+
+                var dz = end_coords['z'] - start_coords['z'];
+                var dx = end_coords['x'] - start_coords['x'];
+
+                // Put the queen in the right place
+                queen.move(dx, dz);
+
+                self.pieces[position] = queen;
+            };
+            // Set this.queen in function
+            self.cloneLibrary["Q"][color].queen = queen;
 
             checkLoaded();
         });
@@ -900,6 +1077,17 @@ Board.prototype.loadPieces = function( afterload ) {
     loadKing(setWhite, whiteInitial);
     loadKing(setBlack, blackInitial);
 };
+
+/**
+ * Loads in a single piece based on a piece code
+ * 
+ * @param x
+ *            The x coordinate to load the piece at
+ * @param y
+ *            The y coordinate to load the piece at
+ * @param piece
+ *            A string representing the piece to load
+ */
 
 /**
  * Executes any animations that need to happen for piece movement/misc. actions
