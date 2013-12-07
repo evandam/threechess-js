@@ -236,7 +236,7 @@ Board.prototype.executeMove = function( ) {
             // It's a promotion
             promote = move[4];
         }
-        
+
         // Check for castling
         if ( piece == "K" && ( this.CASTLING_MOVES.indexOf(move) != -1 ) ) {
             // Castling
@@ -247,20 +247,20 @@ Board.prototype.executeMove = function( ) {
 
             setTimeout(function( ) {
                 // Moving the king
-                self.movePiece(s, e, promote, true);
+                self.movePiece(s, e, piece, promote, true);
             }, 0);
 
             // Moving the rook
             if ( e[0] == 'c' )
                 // Queenside rook @a# to d#, e[1] is column #
-                this.movePiece('a' + e[1], 'd' + e[1]);
+                this.movePiece('a' + e[1], 'd' + e[1], piece);
             else
                 // Kingside rook @h# to f#
-                this.movePiece('h' + e[1], 'f' + e[1]);
+                this.movePiece('h' + e[1], 'f' + e[1], piece);
         }
         else {
             var s = move.slice(0, 2);
-            var e = ( promote ) ? move.slice(2, 5) : move.slice(2);
+            var e = ( promote ) ? move.slice(2, 4) : move.slice(2);
 
             // Cut into first two/last two characters of move string and execute
             if ( !this.movePiece(s, e, piece, promote) ) {
@@ -313,6 +313,7 @@ Board.prototype.movePiece = function( start, end, code, promotion, stop_after ) 
         var piece = this.pieces[start];
         // Capturing if dest is already occupied
         var capturing = ( end in self.pieces );
+        console.log(end);
 
         var enpassant = false;
 
