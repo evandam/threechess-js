@@ -236,7 +236,7 @@ Board.prototype.executeMove = function( ) {
             // It's a promotion
             promote = move[4];
         }
-
+        
         // Check for castling
         if ( piece == "K" && ( this.CASTLING_MOVES.indexOf(move) != -1 ) ) {
             // Castling
@@ -263,7 +263,7 @@ Board.prototype.executeMove = function( ) {
             var e = ( promote ) ? move.slice(2, 5) : move.slice(2);
 
             // Cut into first two/last two characters of move string and execute
-            if ( !this.movePiece(s, e, promote) ) {
+            if ( !this.movePiece(s, e, piece, promote) ) {
                 console.log("move failed: " + piece + move);
             }
         }
@@ -397,6 +397,7 @@ Board.prototype.movePiece = function( start, end, code, promotion, stop_after ) 
             }
             else {
                 // Do the promotion
+                scene.remove(piece);
             }
 
             // Remove the old piece @ old position
