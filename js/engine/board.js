@@ -313,15 +313,15 @@ Board.prototype.movePiece = function( start, end, code, promotion, stop_after ) 
         var piece = this.pieces[start];
         // Capturing if dest is already occupied
         var capturing = ( end in self.pieces );
-        console.log(end);
 
         var enpassant = false;
-
-        if ( code == "P" && !capturing && end_coords['x'] != start_coords['x'] ) {
+        
+        if ( code == "P" && !capturing && dx != 0 ) {
             // It's a pawn, it moved diagonal, AND there is no piece at its
             // destination
             // Therefore it's an enpassant capture
             enpassant = true;
+            capturing = true;
         }
 
         var endcolor = 0xFFFFFF;
@@ -336,16 +336,29 @@ Board.prototype.movePiece = function( start, end, code, promotion, stop_after ) 
         // Function to execute after first animation completes
         var inbetween = function( ) {
             if ( capturing ) {
+                var cpiece;
+                var ccoords = end.slice(0);
+                var cr_coords;
 
-                if ( !enpassant ) {
-                    // Normal capture, just pick the piece at the dest
-                    var cpiece = self.pieces[end];
-                    delete self.pieces[end];
-                }
-                else {
+                if ( enpassant ) {
+                    ccoords = ccoords.split('');
+                    
                     // Pick the piece in the appropriate direction
-
+                    if ( dz < 0 ) {
+                        // Moving white, pick the piece back one row
+                        ccoords[1] = parseInt(ccoords[1]) - 1;
+                    }
+                    else {
+                        // Moving black, pick the piece up one row
+                        ccoords[1] = parseInt(ccoords[1]) + 1;
+                    }
+                    
+                    ccoords = ccoords.join('');
                 }
+                
+                // capture, just pick the piece at the dest
+                cpiece = self.pieces[ccoords];
+                delete self.pieces[ccoords];
 
                 var coords =
                 {
@@ -362,8 +375,9 @@ Board.prototype.movePiece = function( start, end, code, promotion, stop_after ) 
 
                 // Move piece to capture area
                 // Calculate distance
-                var cdx = self.captureX - end_coords.x;
-                var cdz = self.captureZ - end_coords.z;
+                cr_coords = self.calcXYZ(ccoords);
+                var cdx = self.captureX - cr_coords.x;
+                var cdz = self.captureZ - cr_coords.z;
 
                 // Move piece
                 cpiece.move(cdx, cdz);
@@ -663,9 +677,9 @@ Board.prototype.loadPieces = function( afterload ) {
 
             // row 1 if white
             var color = ( pos[1] == 1 ) ? "W" : "B";
-            
+
             var initial = pos.join('');
-            var rookclone = rook;
+            var rookclone = rook.clone();
 
             // Store a clone function so it can be used in promotions
             self.cloneLibrary["R"][color] = function( position ) {
@@ -798,7 +812,7 @@ Board.prototype.loadPieces = function( afterload ) {
                     var color = ( pos[1] == 1 ) ? "W" : "B";
 
                     var initial = pos.join('');
-                    var knightclone = knight;
+                    var knightclone = knight.clone();
 
                     // Store a clone function so it can be used in promotions
                     self.cloneLibrary["N"][color] = function( position ) {
@@ -927,8 +941,8 @@ Board.prototype.loadPieces = function( afterload ) {
 
                     // row 1 if white
                     var color = ( pos[1] == 1 ) ? "W" : "B";
-                    
-                    var bishopclone = bishop;
+
+                    var bishopclone = bishop.clone();
                     var initial = pos.join('');
 
                     // Store a clone function so it can be used in promotions
@@ -1013,8 +1027,8 @@ Board.prototype.loadPieces = function( afterload ) {
 
             // row 1 if white
             var color = ( pos[1] == 1 ) ? "W" : "B";
-            
-            var clonequeen = queen;
+
+            var clonequeen = queen.clone();
             var initial = pos.join('');
 
             // Store a clone function so it can be used in promotions
