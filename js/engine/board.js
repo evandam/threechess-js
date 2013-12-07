@@ -398,7 +398,14 @@ Board.prototype.movePiece = function( start, end, code, promotion, stop_after ) 
             }
             else {
                 // Do the promotion
-                scene.remove(piece);
+                self.board.remove(piece);
+                // Check color, if moving in -z, then white
+                if ( dz < 0 ) {
+                    piece = self.cloneLibrary[promotion]["W"](end);
+                }
+                else {
+                    piece = self.cloneLibrary[promotion]["B"](end);
+                }
             }
 
             // Remove the old piece @ old position
@@ -656,29 +663,31 @@ Board.prototype.loadPieces = function( afterload ) {
 
             // row 1 if white
             var color = ( pos[1] == 1 ) ? "W" : "B";
+            
+            var initial = pos.join('');
+            var rookclone = rook;
 
             // Store a clone function so it can be used in promotions
             self.cloneLibrary["R"][color] = function( position ) {
                 // this.rook will be set outside of this later
-                var rook = this.rook.clone();
+                var rook = rookclone.clone();
                 rook.move = move;
                 rook.name = "R";
 
                 // Start is always going to be pos, since this.rook is the rook
                 // previous
-                var start_coords = this.calcXYZ(pos.join(''));
-                var end_coords = this.calcXYZ(position);
+                var start_coords = self.calcXYZ(initial);
+                var end_coords = self.calcXYZ(position);
 
                 var dz = end_coords['z'] - start_coords['z'];
                 var dx = end_coords['x'] - start_coords['x'];
 
                 // Put the rook in the right place
                 rook.move(dx, dz);
+                board.add(rook);
 
                 self.pieces[position] = rook;
             };
-            // Set this.rook in function
-            self.cloneLibrary["R"][color].rook = rook;
 
             checkLoaded();
         });
@@ -788,28 +797,32 @@ Board.prototype.loadPieces = function( afterload ) {
                     // row 1 if white
                     var color = ( pos[1] == 1 ) ? "W" : "B";
 
+                    var initial = pos.join('');
+                    var knightclone = knight;
+
                     // Store a clone function so it can be used in promotions
                     self.cloneLibrary["N"][color] = function( position ) {
                         // this.knight will be set outside of this later
-                        var knight = this.knight.clone();
-                        knight.move = move;
+                        var knight = knightclone.clone();
+                        knight.move = kMove;
+                        knight.rotate = dorotation;
+                        knight.resetRotation = resetrotation;
                         knight.name = "N";
 
                         // Start is always going to be pos, since this.knight is
                         // the knight previous
-                        var start_coords = this.calcXYZ(pos.join(''));
-                        var end_coords = this.calcXYZ(position);
+                        var start_coords = self.calcXYZ(initial);
+                        var end_coords = self.calcXYZ(position);
 
                         var dz = end_coords['z'] - start_coords['z'];
                         var dx = end_coords['x'] - start_coords['x'];
 
                         // Put the knight in the right place
                         knight.move(dx, dz);
+                        board.add(knight);
 
                         self.pieces[position] = knight;
                     };
-                    // Set this.knight in function
-                    self.cloneLibrary["N"][color].knight = knight;
 
                     checkLoaded();
                 });
@@ -914,29 +927,33 @@ Board.prototype.loadPieces = function( afterload ) {
 
                     // row 1 if white
                     var color = ( pos[1] == 1 ) ? "W" : "B";
+                    
+                    var bishopclone = bishop;
+                    var initial = pos.join('');
 
                     // Store a clone function so it can be used in promotions
                     self.cloneLibrary["B"][color] = function( position ) {
                         // this.bishop will be set outside of this later
-                        var bishop = this.bishop.clone();
-                        bishop.move = move;
+                        var bishop = bishopclone.clone();
+                        bishop.move = bMove;
+                        bishop.rotate = dorotation;
+                        bishop.resetRotation = resetrotation;
                         bishop.name = "B";
 
                         // Start is always going to be pos, since this.bishop is
                         // the bishop previous
-                        var start_coords = this.calcXYZ(pos.join(''));
-                        var end_coords = this.calcXYZ(position);
+                        var start_coords = self.calcXYZ(initial);
+                        var end_coords = self.calcXYZ(position);
 
                         var dz = end_coords['z'] - start_coords['z'];
                         var dx = end_coords['x'] - start_coords['x'];
 
                         // Put the bishop in the right place
                         bishop.move(dx, dz);
+                        board.add(bishop);
 
                         self.pieces[position] = bishop;
                     };
-                    // Set this.bishop in function
-                    self.cloneLibrary["B"][color].bishop = bishop;
 
                     checkLoaded();
                 });
@@ -996,29 +1013,31 @@ Board.prototype.loadPieces = function( afterload ) {
 
             // row 1 if white
             var color = ( pos[1] == 1 ) ? "W" : "B";
+            
+            var clonequeen = queen;
+            var initial = pos.join('');
 
             // Store a clone function so it can be used in promotions
             self.cloneLibrary["Q"][color] = function( position ) {
                 // this.queen will be set outside of this later
-                var queen = this.queen.clone();
+                var queen = clonequeen.clone();
                 queen.move = move;
                 queen.name = "Q";
 
                 // Start is always going to be pos, since this.queen is
                 // the queen previous
-                var start_coords = this.calcXYZ(pos.join(''));
-                var end_coords = this.calcXYZ(position);
+                var start_coords = self.calcXYZ(initial);
+                var end_coords = self.calcXYZ(position);
 
                 var dz = end_coords['z'] - start_coords['z'];
                 var dx = end_coords['x'] - start_coords['x'];
 
                 // Put the queen in the right place
                 queen.move(dx, dz);
+                board.add(queen);
 
                 self.pieces[position] = queen;
             };
-            // Set this.queen in function
-            self.cloneLibrary["Q"][color].queen = queen;
 
             checkLoaded();
         });
