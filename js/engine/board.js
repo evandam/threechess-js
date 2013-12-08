@@ -9,6 +9,7 @@
 function Board(scene, afterload) {
     this.downloadedModels = {};
     this.customModels = {};
+    this.currentModels = 0; // 0 for custom, 1 for downloaded
 
     // No generated pieces yet
     this.pieces = { };
@@ -510,7 +511,7 @@ Board.prototype.loadPieces = function( afterload ) {
     var texture = THREE.ImageUtils.loadTexture("textures/marble.jpg");
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(4, 4);
-    var setWhite = function( object ) {
+    var setWhite = function (object) {
         object.traverse(function( child ) {
             if ( child instanceof THREE.Mesh ) {
                 child.material.map = texture;
@@ -519,7 +520,7 @@ Board.prototype.loadPieces = function( afterload ) {
         });
     };
 
-    var setBlack = function( object ) {
+    var setBlack = function (object) {
         object.traverse(function( child ) {
             if ( child instanceof THREE.Mesh ) {
                 child.material.map = texture;
@@ -539,7 +540,7 @@ Board.prototype.loadPieces = function( afterload ) {
     /*
      * Pawn-specific loading functions
      */
-    var whiteInitial = function( piece, pos ) {
+    var whiteInitial = function (piece, pos) {
         piece.translateX(-3.5);
         piece.translateY(1);
         piece.translateZ(2.5);
@@ -548,7 +549,7 @@ Board.prototype.loadPieces = function( afterload ) {
         pos[1] = 2;
     };
 
-    var blackInitial = function( piece, pos ) {
+    var blackInitial = function (piece, pos) {
         piece.translateX(-3.5);
         piece.translateY(1);
         piece.translateZ(-2.5);
@@ -1266,9 +1267,16 @@ Board.prototype.loadOtherModels = function (loader) {
 };
 
 // replace geometries
-// custom = true for custom models, false for downloaded ones
-Board.prototype.swapModels = function (custom) {
-    var models = custom ? this.customModels : this.downloadedModels;
+Board.prototype.swapModels = function () {
+    var models = this.downloadedModels;
+    
+    if (this.currentModels === 1) {
+        models = this.customModels;
+        this.currentModels = 0;
+    }
+    else
+        this.currentModels = 1;
+
     if (models.king && models.queen && models.rook && models.bishop && models.knight && models.pawn) {
         var pieces = this.pieces;
         for (var i in pieces) {
@@ -1276,6 +1284,7 @@ Board.prototype.swapModels = function (custom) {
                 var model;
                 switch (pieces[i].name) {
                     case 'P':
+                    case '':
                         model = models.pawn;
                         break;
                     case 'R':
@@ -1303,13 +1312,17 @@ Board.prototype.swapModels = function (custom) {
                 for (var child = pieces.length - 1; child >= 0; child--) {
                     pieces[i].remove(child);
                 }
-
                 model.traverse(function (child) {
                     if (child.geometry) {
+                        if (pieces[i].pieceColor === 1)
+                            child.material.color.setRGB(0.1, 0.1, 0.1)
+                        else
+                            child.material.color.setRGB(0.9, 0.9, 0.9)
+                        child.material.needsUpdate = true;
                         pieces[i].add(child);
                     }
                 });
-                if (!custom) {
+                if (this.currentModels === 1) {
                     pieces[i].scale.z = pieces[i].scale.y = pieces[i].scale.x = 0.05;
                     if (pieces[i].name == 'N')
                         pieces[i].rotateY(Math.PI / 2);
