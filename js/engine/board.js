@@ -6,7 +6,10 @@
  * @param afterload
  *            The function to execute after the board is loaded
  */
-function Board( scene, afterload ) {
+function Board(scene, afterload) {
+    this.downloadedModels = {};
+    this.customModels = {};
+
     // No generated pieces yet
     this.pieces = { };
 
@@ -567,7 +570,8 @@ Board.prototype.loadPieces = function( afterload ) {
      */
     var loadPawns = function( setcolor, startpos ) {
         // Load in the pieces, starting with the pawns
-        loader.load('models/pawn.obj', 'models/pawn.mtl', function( object ) {
+        loader.load('models/pawn.obj', 'models/pawn.mtl', function (object) {
+            self.customModels.pawn = object;
             // Make the pawns
             var pawn = object;
             var pos = [ ];
@@ -643,7 +647,8 @@ Board.prototype.loadPieces = function( afterload ) {
      * Object load method for the Rooks
      */
     var loadRooks = function( setcolor, startpos ) {
-        loader.load('models/rook.obj', 'models/rook.mtl', function( object ) {
+        loader.load('models/rook.obj', 'models/rook.mtl', function (object) {
+            self.customModels.rook = object;
             var rook = object;
             rook.move = simpleMove;
             rook.name = "R";
@@ -768,7 +773,8 @@ Board.prototype.loadPieces = function( afterload ) {
      */
     var loadKnights = function( setcolor, startpos, dorotation, resetrotation ) {
         loader.load('models/knight.obj', 'models/knight.mtl',
-                function( object ) {
+                function (object) {
+                    self.customModels.knight = object;
                     var knight = object;
                     var pos = [ ];
                     knight.move = kMove;
@@ -903,7 +909,8 @@ Board.prototype.loadPieces = function( afterload ) {
      */
     var loadBishops = function( setcolor, startpos, dorotation, resetrotation ) {
         loader.load('models/bishop.obj', 'models/bishop.mtl',
-                function( object ) {
+                function (object) {
+                    self.customModels.bishop = object;
                     var bishop = object;
                     var pos = [ ];
 
@@ -1009,7 +1016,8 @@ Board.prototype.loadPieces = function( afterload ) {
      * Object load function for the Queens
      */
     var loadQueen = function( setcolor, startpos ) {
-        loader.load('models/queen.obj', 'models/queen.mtl', function( object ) {
+        loader.load('models/queen.obj', 'models/queen.mtl', function (object) {
+            self.customModels.queen = object;
             var queen = object;
             var pos = [ ];
 
@@ -1086,7 +1094,8 @@ Board.prototype.loadPieces = function( afterload ) {
      * Object load function for the Kings
      */
     var loadKing = function( setcolor, startpos ) {
-        loader.load('models/king.obj', 'models/king.mtl', function( object ) {
+        loader.load('models/king.obj', 'models/king.mtl', function (object) {
+            self.customModels.king = object;
             var king = object;
             var pos = [ ];
 
@@ -1111,6 +1120,9 @@ Board.prototype.loadPieces = function( afterload ) {
      */
     loadKing(setWhite, whiteInitial);
     loadKing(setBlack, blackInitial);
+
+    // add functionality for other models
+    this.loadOtherModels(loader);
 };
 
 /**
@@ -1140,8 +1152,8 @@ Board.prototype.animate = function( ) {
 
 // Have different texture "themes"
 // theme can be either "marble" or "wood"
-Board.prototype.switchTheme = function( theme ) {
-    if ( theme == "wood" ) {
+Board.prototype.switchTheme = function (theme) {
+    if (theme == "wood") {
         // update datgui var
         view.Marble = false;
         view.Wood = true;
@@ -1150,8 +1162,8 @@ Board.prototype.switchTheme = function( theme ) {
                 .loadTexture("textures/grunge/greyscale_natural_grunge1.jpg");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(8, 8);
-        this.boardFrame.traverse(function( child ) {
-            if ( child instanceof THREE.Mesh ) {
+        this.boardFrame.traverse(function (child) {
+            if (child instanceof THREE.Mesh) {
                 child.material.map = texture;
                 child.material.color.setRGB(0.7, 0.2, 0.1);
             }
@@ -1161,14 +1173,14 @@ Board.prototype.switchTheme = function( theme ) {
                 .loadTexture("textures/grunge/greyscale_natural_grunge1.jpg");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(1, 1);
-        this.boardSquares[0].traverse(function( child ) {
-            if ( child instanceof THREE.Mesh ) {
+        this.boardSquares[0].traverse(function (child) {
+            if (child instanceof THREE.Mesh) {
                 child.material.map = texture;
                 child.material.color.setRGB(0.7, 0.2, 0.1);
             }
         });
-        this.boardSquares[1].traverse(function( child ) {
-            if ( child instanceof THREE.Mesh ) {
+        this.boardSquares[1].traverse(function (child) {
+            if (child instanceof THREE.Mesh) {
                 child.material.map = texture;
                 child.material.color.setRGB(0.1, 0.0, 0.0);
             }
@@ -1178,9 +1190,9 @@ Board.prototype.switchTheme = function( theme ) {
                 .loadTexture("textures/grunge/greyscale_natural_grunge4.jpg");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(4, 4);
-        for ( var piece in this.pieces ) {
-            this.pieces[piece].traverse(function( child ) {
-                if ( child instanceof THREE.Mesh ) {
+        for (var piece in this.pieces) {
+            this.pieces[piece].traverse(function (child) {
+                if (child instanceof THREE.Mesh) {
                     child.material.map = texture;
                 }
             });
@@ -1194,8 +1206,8 @@ Board.prototype.switchTheme = function( theme ) {
         var texture = THREE.ImageUtils.loadTexture("textures/BloodMarble.png");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(16, 16);
-        this.boardFrame.traverse(function( child ) {
-            if ( child instanceof THREE.Mesh ) {
+        this.boardFrame.traverse(function (child) {
+            if (child instanceof THREE.Mesh) {
                 child.material.map = texture;
                 child.material.color.setRGB(0.0, 0.1, 0.1);
             }
@@ -1204,14 +1216,14 @@ Board.prototype.switchTheme = function( theme ) {
         var texture = THREE.ImageUtils.loadTexture("textures/marble.jpg");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(1, 1);
-        this.boardSquares[0].traverse(function( child ) {
-            if ( child instanceof THREE.Mesh ) {
+        this.boardSquares[0].traverse(function (child) {
+            if (child instanceof THREE.Mesh) {
                 child.material.map = texture;
                 child.material.color.setRGB(0.9, 0.9, 0.9);
             }
         });
-        this.boardSquares[1].traverse(function( child ) {
-            if ( child instanceof THREE.Mesh ) {
+        this.boardSquares[1].traverse(function (child) {
+            if (child instanceof THREE.Mesh) {
                 child.material.map = texture;
                 child.material.color.setRGB(0.1, 0.1, 0.1);
             }
@@ -1220,12 +1232,96 @@ Board.prototype.switchTheme = function( theme ) {
         texture = THREE.ImageUtils.loadTexture("textures/marble1.jpg");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(4, 4);
-        for ( var piece in this.pieces ) {
-            this.pieces[piece].traverse(function( child ) {
-                if ( child instanceof THREE.Mesh ) {
+        for (var piece in this.pieces) {
+            this.pieces[piece].traverse(function (child) {
+                if (child instanceof THREE.Mesh) {
                     child.material.map = texture;
                 }
             });
         }
     }
-}
+};
+
+Board.prototype.loadOtherModels = function (loader) {
+    var self = this;
+
+    loader.load('models/downloaded/King.obj', 'models/downloaded/King.mtl', function (object) {
+        self.downloadedModels.king = object;
+    });
+    loader.load('models/downloaded/Queen.obj', 'models/downloaded/Queen.mtl', function( object ) {
+        self.downloadedModels.queen = object;
+    });
+    loader.load('models/downloaded/Rook.obj', 'models/downloaded/Rook.mtl', function( object ) {
+        self.downloadedModels.rook = object;
+    });
+    loader.load('models/downloaded/Bishop.obj', 'models/downloaded/Bishop.mtl', function( object ) {
+        self.downloadedModels.bishop = object;
+    });
+    loader.load('models/downloaded/Knight.obj', 'models/downloaded/Knight.mtl', function( object ) {
+        self.downloadedModels.knight = object;
+    });
+    loader.load('models/downloaded/Pawn.obj', 'models/downloaded/Pawn.mtl', function( object ) {
+        self.downloadedModels.pawn = object;
+    });
+};
+
+// replace geometries
+// custom = true for custom models, false for downloaded ones
+Board.prototype.swapModels = function (custom) {
+    var models = custom ? this.customModels : this.downloadedModels;
+    if (models.king && models.queen && models.rook && models.bishop && models.knight && models.pawn) {
+        var pieces = this.pieces;
+        for (var i in pieces) {
+            if (pieces[i]) {
+                var model;
+                switch (pieces[i].name) {
+                    case 'P':
+                        model = models.pawn;
+                        break;
+                    case 'R':
+                        model = models.rook;
+                        break;
+                    case 'N':
+                        model = models.knight;
+                        break;
+                    case 'B':
+                        model = models.bishop;
+                        break;
+                    case 'Q':
+                        model = models.queen;
+                        break;
+                    case 'K':
+                        model = models.king;
+                        break;
+                    default:
+                        console.log('invalid name');
+                        return;
+                }
+
+                model = cloneObjMtl(model);
+                // remove all children parts of piece
+                for (var child = pieces.length - 1; child >= 0; child--) {
+                    pieces[i].remove(child);
+                }
+
+                model.traverse(function (child) {
+                    if (child.geometry) {
+                        pieces[i].add(child);
+                    }
+                });
+                if (!custom) {
+                    pieces[i].scale.z = pieces[i].scale.y = pieces[i].scale.x = 0.05;
+                    if (pieces[i].name == 'N')
+                        pieces[i].rotateY(Math.PI / 2);
+                    else if (pieces[i].name == 'B')
+                        pieces[i].rotateY(Math.PI);
+                }
+                else {
+                    pieces[i].scale.z = pieces[i].scale.y = pieces[i].scale.x = 0.4;
+                }
+            }
+        }
+    }
+    else
+        alert("Please wait for all of the models to load");
+};

@@ -4,6 +4,9 @@
     "GameID": 340,
     "Start game": function () {
         controller.connectTo(this.GameID);
+    },
+    "Use alternate models": function () {
+        controller.board.swapModels(false);
     }
 };
 
@@ -20,6 +23,7 @@ woodController.onChange(function (value) {
     view.Marble = !value;
     controller.board.switchTheme('wood');
 });
+themes.add(view, 'Use alternate models');
 
 var game = gui.addFolder('Game');
 game.add(view, 'GameID');
