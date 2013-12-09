@@ -1158,8 +1158,8 @@ Board.prototype.animate = function( ) {
 Board.prototype.switchTheme = function (theme) {
     if (theme == "wood") {
         // update datgui var
-        view.Marble = false;
-        view.Wood = true;
+        datView.Marble = false;
+        datView.Wood = true;
 
         var texture = THREE.ImageUtils
                 .loadTexture("textures/grunge/greyscale_natural_grunge1.jpg");

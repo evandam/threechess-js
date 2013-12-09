@@ -1,5 +1,6 @@
-﻿function initDatGui() {
-    var datView = {
+﻿var datView;
+function initDatGui() {
+    datView = {
         "Marble": true,
         "Wood": false,
         "GameID": 340,
@@ -10,7 +11,8 @@
             controller.board.swapModels();
         },
         "Rotate view": rotateView,
-        "Overhead": overheadView
+        "Overhead": overheadView,
+        "Board level": boardLevelView
     };
 
     var gui = new dat.GUI();
@@ -19,6 +21,7 @@
     cameraControls.add(window, 'mouseEnabled');
     cameraControls.add(datView, 'Rotate view');
     cameraControls.add(datView, 'Overhead');
+    cameraControls.add(datView, 'Board level');
 
     var themes = gui.addFolder('Theme');
     var marbleController = themes.add(datView, 'Marble').listen();
