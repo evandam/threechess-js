@@ -10,6 +10,7 @@
             controller.board.swapModels();
         },
         "Rotate view": rotateView,
+        "Overhead": overheadView
     };
 
     var gui = new dat.GUI();
@@ -17,6 +18,8 @@
     var cameraControls = gui.addFolder('Camera');
     cameraControls.add(window, 'mouseEnabled');
     cameraControls.add(datView, 'Rotate view');
+    cameraControls.add(datView, 'Overhead');
+
     var themes = gui.addFolder('Theme');
     var marbleController = themes.add(datView, 'Marble').listen();
     var woodController = themes.add(datView, 'Wood').listen();

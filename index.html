@@ -65,7 +65,8 @@
         var isClicked = false; 
 
         // track if we are in the process of rotating to a side
-        var rotating = false;
+        var rotating = false, toOverhead = false;
+        var maxY = 20, minY = -0.5;
 
         init();
         initDatGui();
@@ -167,12 +168,21 @@
             render();
         }
 
+        // rotate 180 degrees in render function
         function rotateView() {
             // set the flag to true so it won't be interrupted
             if (!rotating) {
                 rotating = true;
                 controller.board.board.rotateY(rad * 2);
             }
+        }
+
+        // increment the height of the camera until birdseye view
+        function overheadView() {
+            if (!toOverhead) {
+                toOverhead = true;
+            }
+
         }
 
         function render() {
@@ -184,6 +194,26 @@
                     rotating = false;
             }
 
+            if (toOverhead) {
+                // adjust height
+                if (camera.position.y < maxY)
+                    camera.position.y += 0.1;
+
+                // center the camera over the board
+                if(camera.position.z != 0) {
+                    if(camera.position.z < -0.05)
+                        camera.position.z += 0.05;
+                    else if (camera.position.z > 0.05)
+                        camera.position.z -= 0.05;
+                    else {
+                        camera.position.z = 0;
+                    }
+                }
+                
+                if (camera.position.y >= maxY && camera.position.z === 0 && camera.position.x === 0)
+                    toOverhead = false;
+            }
+
             if (mouseEnabled && isClicked) {
                 var deltaX = mouseX - startX;
                 var deltaY = mouseY - startY;
@@ -191,8 +221,8 @@
                 if(deltaX && !rotating)
                     controller.board.board.rotateY(rad * deltaX / 100);
                 // need to actually adjust camera to avoid board getting aligned improperly
-                if (deltaY) {
-                    if((camera.position.y < 20 && deltaY > 0) || (camera.position.y > -0.5 && deltaY < 0))
+                if (deltaY && !toOverhead) {
+                    if((camera.position.y < maxY && deltaY > 0) || (camera.position.y > minY && deltaY < 0))
                         camera.position.y += deltaY / 100;
                 }
             }
