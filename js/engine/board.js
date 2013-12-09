@@ -142,8 +142,9 @@ function Board(scene, afterload) {
 
     // Load in the Board data itself
     loader.load('models/boardBlocks.obj', 'models/boardBlocks.mtl', function(
-            object ) {
-
+            object) {
+        // marble texture provided by 
+        // http://www.designyourway.net/drb/useful-free-marble-textures-for-cg-artists-and-not-only/
         var texture = THREE.ImageUtils.loadTexture("textures/marble.jpg");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(4, 4);
@@ -177,6 +178,8 @@ function Board(scene, afterload) {
             // Dark wood: 133;94;66 RGB
 
             // load a texture, set wrap mode to repeat
+            // texture from:
+            // http://www.tutorialsforblender3d.com/Textures/Marble/Marble_Rendered_1.html
             var texture = THREE.ImageUtils
                     .loadTexture("textures/BloodMarble.png");
             texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
@@ -508,6 +511,7 @@ Board.prototype.loadPieces = function( afterload ) {
         if ( pieceCount == 32 )
             afterload();
     };
+    // http://www.designyourway.net/drb/useful-free-marble-textures-for-cg-artists-and-not-only/
     var texture = THREE.ImageUtils.loadTexture("textures/marble.jpg");
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(4, 4);
@@ -1161,6 +1165,7 @@ Board.prototype.switchTheme = function (theme) {
         datView.Marble = false;
         datView.Wood = true;
 
+        // http://webtreats.mysitemyway.com/greyscale-natural-grunge-textures/
         var texture = THREE.ImageUtils
                 .loadTexture("textures/grunge/greyscale_natural_grunge1.jpg");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
@@ -1172,6 +1177,7 @@ Board.prototype.switchTheme = function (theme) {
             }
         });
 
+        // http://webtreats.mysitemyway.com/greyscale-natural-grunge-textures/
         var texture = THREE.ImageUtils
                 .loadTexture("textures/grunge/greyscale_natural_grunge1.jpg");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
@@ -1205,7 +1211,8 @@ Board.prototype.switchTheme = function (theme) {
         // update datgui var
         datView.Marble = true;
         datView.Wood = false;
-
+        // texture from 
+        // http://www.tutorialsforblender3d.com/Textures/Marble/Marble_Rendered_1.html
         var texture = THREE.ImageUtils.loadTexture("textures/BloodMarble.png");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(16, 16);
@@ -1215,7 +1222,7 @@ Board.prototype.switchTheme = function (theme) {
                 child.material.color.setRGB(0.0, 0.1, 0.1);
             }
         });
-
+        // http://www.designyourway.net/drb/useful-free-marble-textures-for-cg-artists-and-not-only/
         var texture = THREE.ImageUtils.loadTexture("textures/marble.jpg");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(1, 1);
@@ -1231,7 +1238,7 @@ Board.prototype.switchTheme = function (theme) {
                 child.material.color.setRGB(0.1, 0.1, 0.1);
             }
         });
-
+        // http://www.designyourway.net/drb/useful-free-marble-textures-for-cg-artists-and-not-only/
         texture = THREE.ImageUtils.loadTexture("textures/marble1.jpg");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(4, 4);
@@ -1245,6 +1252,7 @@ Board.prototype.switchTheme = function (theme) {
     }
 };
 
+// These models were downloaded from http://www.turbosquid.com/
 Board.prototype.loadOtherModels = function (loader) {
     var self = this;
 
