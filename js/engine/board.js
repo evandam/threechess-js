@@ -1203,8 +1203,8 @@ Board.prototype.switchTheme = function (theme) {
     }
     else {
         // update datgui var
-        view.Marble = true;
-        view.Wood = false;
+        datView.Marble = true;
+        datView.Wood = false;
 
         var texture = THREE.ImageUtils.loadTexture("textures/BloodMarble.png");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
