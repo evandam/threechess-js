@@ -56,15 +56,18 @@
         var container, stats;
         var camera, scene, renderer;
         var view;   // for datgui
-        
+
         // control camera movement by clicking and dragging
-        var mouseX = 0, mouseY = 0;
-        var theta = 0, phi = 0;
-        var isClicked = false; var radius = 14;
-        var windowHalfX = window.innerWidth / 2;
-        var windowHalfY = window.innerHeight / 2;
+        var mouseEnabled = true;
+        var startX, startY;
+        var mouseX, mouseY;
+        var isClicked = false; 
+
+        // track if we are in the process of rotating to a side
+        var whiteRotate = false, blackRotate = false;
 
         init();
+        initDatGui();
         animate();
 
         function init() {
@@ -104,20 +107,23 @@
 
             window.addEventListener('resize', onWindowResize, false);
             document.addEventListener('mousemove', onDocumentMouseMove, false);
-            document.addEventListener('mousedown', function () { isClicked = true; }, false);
-            document.addEventListener('mouseup', function () { isClicked = false; }, false);
+            document.addEventListener('mousedown', function (evt) {
+                isClicked = true;
+                startX = event.clientX;
+                startY = event.clientY;
+            }, false);
+
+            document.addEventListener('mouseup', function () {
+                isClicked = false;
+                startX = null;
+                startY = null;
+            }, false);
+            // scroll to zoom in or out (adjust the camera's z coordinate)
             document.addEventListener('mousewheel', function (evt) {
-                if (evt.wheelDeltaY < 0)
-                    radius += 0.5;
+                if (evt.wheelDeltaY > 0)
+                    camera.position.z--;
                 else
-                    radius -= 0.5;
-                //console.log(radius);
-                camera.position.x = radius * Math.sin(theta * Math.PI / 360)
-                                    * Math.cos(phi * Math.PI / 360);
-                camera.position.y = radius * Math.sin(phi * Math.PI / 360);
-                camera.position.z = radius * Math.cos(theta * Math.PI / 360)
-                                    * Math.cos(phi * Math.PI / 360);
-                camera.updateMatrix();
+                    camera.position.z++;                    
             }, false);
         }
 
@@ -151,8 +157,8 @@
         }
 
         function onDocumentMouseMove() {
-            mouseX = (event.clientX - windowHalfX) / 2;
-            mouseY = (event.clientY - windowHalfY) / 2;
+            mouseX = event.clientX;
+            mouseY = event.clientY;
         }
 
         function animate() {
@@ -160,29 +166,49 @@
             render();
         }
 
+        function whitePerspective() {
+            // set the flag to true so it won't be interrupted
+            if (!whiteRotate && !blackRotate) {
+                whiteRotate = true;
+            }
+        }
+
+        function blackPerspective() {
+            // set the flag to true so it won't be interrupted
+            if (!blackRotate && !whiteRotate) {
+                blackRotate = true;
+            }
+        }
+
         function render() {
-            if (isClicked) {
+            if (whiteRotate) {
+                theta+=2;
+                controller.board.board.rotateY(1);
+                //whiteRotate = false;
+            }
+            else if (blackRotate) {
 
-                theta = -((mouseX - camera.position.x))
-                        + 45;
-                phi = ((-mouseY - camera.position.y))
-                      + 45;
 
-                phi = Math.min(180, Math.max(0, phi));
-
-                camera.position.x = radius * Math.sin(theta * Math.PI / 360)
-                                    * Math.cos(phi * Math.PI / 360);
-                camera.position.y = radius * Math.sin(phi * Math.PI / 360);
-                camera.position.z = radius * Math.cos(theta * Math.PI / 360)
-                                    * Math.cos(phi * Math.PI / 360);
-                camera.updateMatrix();
-
+                blackRotate = false;
+            }
+            else if (mouseEnabled && isClicked) {
+                var deltaX = mouseX - startX;
+                var deltaY = mouseY - startY;
+                // rotate board simulates rotating camera
+                if(deltaX)
+                    controller.board.board.rotateY((Math.PI / 180) * deltaX / 100);
+                // need to actually adjust camera to avoid board getting aligned improperly
+                if (deltaY) {
+                    if((camera.position.y < 20 && deltaY > 0) || (camera.position.y > -5 && deltaY < 0))
+                        camera.position.y += deltaY / 100;
+                }
             }
             camera.lookAt(scene.position);
             renderer.render(scene, camera);
             
             controller.board.animate();
         }
+
     </script>
 </body>
 </html>

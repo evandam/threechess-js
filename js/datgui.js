@@ -1,32 +1,42 @@
-﻿var view = {
-    "Marble": true,
-    "Wood": false,
-    "GameID": 340,
-    "Start game": function () {
-        controller.connectTo(this.GameID);
-    },
-    "Alternate models": function () {
-        controller.board.swapModels();
-    }
-};
+﻿function initDatGui() {
+    var datView = {
+        "Marble": true,
+        "Wood": false,
+        "GameID": 340,
+        "Start game": function () {
+            controller.connectTo(this.GameID);
+        },
+        "Alternate models": function () {
+            controller.board.swapModels();
+        },
+        "White View": whitePerspective,
+        "Black View": blackPerspective
+    };
 
-var gui = new dat.GUI();
+    var gui = new dat.GUI();
 
-var themes = gui.addFolder('Theme');
-var marbleController = themes.add(view, 'Marble').listen();
-var woodController = themes.add(view, 'Wood').listen();
-marbleController.onChange(function (value) {
-    view.Wood = !value;
-    controller.board.switchTheme('marble');
-});
-woodController.onChange(function (value) {
-    view.Marble = !value;
-    controller.board.switchTheme('wood');
-});
-themes.add(view, 'Alternate models');
+    var cameraControls = gui.addFolder('Camera');
+    cameraControls.add(window, 'mouseEnabled');
+    cameraControls.add(datView, 'White View');
+    cameraControls.add(datView, 'Black View');
+    var themes = gui.addFolder('Theme');
+    var marbleController = themes.add(datView, 'Marble').listen();
+    var woodController = themes.add(datView, 'Wood').listen();
+    marbleController.onChange(function (value) {
+        datView.Wood = !value;
+        controller.board.switchTheme('marble');
+    });
+    woodController.onChange(function (value) {
+        datView.Marble = !value;
+        controller.board.switchTheme('wood');
+    });
+    themes.add(datView, 'Alternate models');
 
-var game = gui.addFolder('Game');
-game.add(view, 'GameID');
-game.add(view, 'Start game');
-themes.open();
-game.open();
+    var game = gui.addFolder('Game');
+    game.add(datView, 'GameID');
+    game.add(datView, 'Start game');
+
+    cameraControls.open();
+    themes.open();
+    game.open();
+}
