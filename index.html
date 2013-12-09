@@ -57,14 +57,15 @@
         var camera, scene, renderer;
         var view;   // for datgui
 
+        var rad = (Math.PI / 180);
         // control camera movement by clicking and dragging
-        var mouseEnabled = true;
+        var mouseEnabled = false;
         var startX, startY;
         var mouseX, mouseY;
         var isClicked = false; 
 
         // track if we are in the process of rotating to a side
-        var whiteRotate = false, blackRotate = false;
+        var rotating = false;
 
         init();
         initDatGui();
@@ -166,40 +167,32 @@
             render();
         }
 
-        function whitePerspective() {
+        function rotateView() {
             // set the flag to true so it won't be interrupted
-            if (!whiteRotate && !blackRotate) {
-                whiteRotate = true;
-            }
-        }
-
-        function blackPerspective() {
-            // set the flag to true so it won't be interrupted
-            if (!blackRotate && !whiteRotate) {
-                blackRotate = true;
+            if (!rotating) {
+                rotating = true;
+                controller.board.board.rotateY(rad * 2);
             }
         }
 
         function render() {
-            if (whiteRotate) {
-                theta+=2;
-                controller.board.board.rotateY(1);
-                //whiteRotate = false;
+            
+            if (rotating) {
+                if(controller.board.board.rotation.y <= -rad || controller.board.board.rotation.y >= rad)
+                    controller.board.board.rotateY(rad);
+                else
+                    rotating = false;
             }
-            else if (blackRotate) {
 
-
-                blackRotate = false;
-            }
-            else if (mouseEnabled && isClicked) {
+            if (mouseEnabled && isClicked) {
                 var deltaX = mouseX - startX;
                 var deltaY = mouseY - startY;
                 // rotate board simulates rotating camera
-                if(deltaX)
-                    controller.board.board.rotateY((Math.PI / 180) * deltaX / 100);
+                if(deltaX && !rotating)
+                    controller.board.board.rotateY(rad * deltaX / 100);
                 // need to actually adjust camera to avoid board getting aligned improperly
                 if (deltaY) {
-                    if((camera.position.y < 20 && deltaY > 0) || (camera.position.y > -5 && deltaY < 0))
+                    if((camera.position.y < 20 && deltaY > 0) || (camera.position.y > -0.5 && deltaY < 0))
                         camera.position.y += deltaY / 100;
                 }
             }

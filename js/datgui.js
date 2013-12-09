@@ -9,16 +9,14 @@
         "Alternate models": function () {
             controller.board.swapModels();
         },
-        "White View": whitePerspective,
-        "Black View": blackPerspective
+        "Rotate view": rotateView,
     };
 
     var gui = new dat.GUI();
 
     var cameraControls = gui.addFolder('Camera');
     cameraControls.add(window, 'mouseEnabled');
-    cameraControls.add(datView, 'White View');
-    cameraControls.add(datView, 'Black View');
+    cameraControls.add(datView, 'Rotate view');
     var themes = gui.addFolder('Theme');
     var marbleController = themes.add(datView, 'Marble').listen();
     var woodController = themes.add(datView, 'Wood').listen();
