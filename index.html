@@ -270,11 +270,11 @@
                 var deltaY = mouseY - startY;
                 // rotate board simulates rotating camera
                 if(deltaX && !rotating)
-                    controller.board.board.rotateY(rad * deltaX / 100);
+                    controller.board.board.rotateY(rad * deltaX / 500);
                 // need to actually adjust camera to avoid board getting aligned improperly
                 if (deltaY && !toOverhead && !toBoardLevel) {
                     if((camera.position.y < maxY && deltaY > 0) || (camera.position.y > minY && deltaY < 0))
-                        camera.position.y += deltaY / 100;
+                        camera.position.y += deltaY / 500;
                 }
             }
             camera.lookAt(scene.position);

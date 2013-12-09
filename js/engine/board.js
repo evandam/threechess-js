@@ -1288,11 +1288,11 @@ Board.prototype.swapModels = function () {
         this.currentModels = 1;
 
     if (models.king && models.queen && models.rook && models.bishop && models.knight && models.pawn) {
-        var pieces = this.pieces;
-        for (var i in pieces) {
-            if (pieces[i]) {
+        for (var i in this.pieces) {
+            var piece = this.pieces[i];
+            if (piece) {
                 var model;
-                switch (pieces[i].name) {
+                switch (piece.name) {
                     case 'P':
                         model = models.pawn;
                         break;
@@ -1319,34 +1319,34 @@ Board.prototype.swapModels = function () {
                 // find the color of the piece we're changing
                 // when the mesh is changed it does not save the material
                 var color;
-                pieces[i].traverse(function (child) {
+                piece.traverse(function (child) {
                     if (child instanceof THREE.Mesh)
                         color = child.material.color.r;
                 })
                 model = cloneObjMtl(model);
 
                 // remove all children parts of piece
-                for (var child = pieces.length - 1; child >= 0; child--) {
-                    pieces[i].remove(child);
+                for (var child = piece.children.length - 1; child >= 0; child--) {
+                    piece.remove(piece.children[child]);
                 }
                 // and replace them with the new model meshes
                 model.traverse(function (child) {
                     if (child instanceof THREE.Mesh) {
-                        child.material.color.setRGB(color, color, color);
+                        // child.material.color.setRGB(color, color, color);
                         child.material.needsUpdate = true;
                     }
-                    pieces[i].add(child);
+                    piece.add(child);
                 });
                 // rescale pieces and rotate knights and bishops to be correct
                 if (this.currentModels === 1) {
-                    pieces[i].scale.z = pieces[i].scale.y = pieces[i].scale.x = 0.05;
-                    if (pieces[i].name == 'N')
-                        pieces[i].rotateY(Math.PI / 2);
-                    else if (pieces[i].name == 'B')
-                        pieces[i].rotateY(Math.PI);
+                    piece.scale.z = piece.scale.y = piece.scale.x = 0.05;
+                    if (piece.name == 'N')
+                        piece.rotateY(Math.PI / 2);
+                    else if (piece.name == 'B')
+                        piece.rotateY(Math.PI);
                 }
                 else {
-                    pieces[i].scale.z = pieces[i].scale.y = pieces[i].scale.x = 0.4;
+                    piece.scale.z = piece.scale.y = piece.scale.x = 0.4;
                 }
             }
         }

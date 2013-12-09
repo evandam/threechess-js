@@ -77,9 +77,10 @@ Controller.prototype.poll = function( ) {
         // there has been a move since the server was last polled
         if ( data.lastmovenumber != self.lastmovenumber ) {
             // queue the last move to be animated
-            console.log(data);
-            var i = data.moves.length - 1;
-            self.board.queueMove(data.moves[i][0], data.moves[i].slice(1));
+            // bug where sometimes 2 moves can happen between polling, so account for that
+            for (var i = self.lastmovenumber + 1; i < data.moves.length; i++) {
+                self.board.queueMove(data.moves[i][0], data.moves[i].slice(1));
+            }            
         }
 
         self.lastmovenumber = data.lastmovenumber;
@@ -88,6 +89,8 @@ Controller.prototype.poll = function( ) {
         // update clocks
         var mins = Math.floor(data.whitetime / 60);
         var secs = Math.floor(data.whitetime % 60);
+        if (secs < 10)
+            secs = '0' + secs;
         $('#whiteTime').text(mins + ':' + secs);
 
         mins = Math.floor(data.blacktime / 60);
