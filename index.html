@@ -81,16 +81,17 @@
             var ambient = new THREE.AmbientLight(0x101010);
             scene.add(ambient);
             var directionalLight = new THREE.DirectionalLight(0xffeedd);
-            directionalLight.position.set(0.5, 2, 3);
+            directionalLight.position.set(0.5, 2, 5);
             scene.add(directionalLight);
 
             // add another light
             var directionalLight1 = new THREE.DirectionalLight(0xffeedd);
-            directionalLight1.position.set(-0.5, 1, -3);
+            directionalLight1.intensity = 1.5;
+            directionalLight1.position.set(-0.5, 1, -5);
             scene.add(directionalLight1);
 
             var spotLight = new THREE.SpotLight(0xffffff);
-            spotLight.position.set(0, 7, 0);
+            spotLight.position.set(2, 5, 1);
             scene.add(spotLight);
             
             //Get a new game controller, also builds the board

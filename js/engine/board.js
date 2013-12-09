@@ -512,6 +512,7 @@ Board.prototype.loadPieces = function( afterload ) {
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(4, 4);
     var setWhite = function (object) {
+        object.pieceColor = 0;
         object.traverse(function( child ) {
             if ( child instanceof THREE.Mesh ) {
                 child.material.map = texture;
@@ -521,6 +522,7 @@ Board.prototype.loadPieces = function( afterload ) {
     };
 
     var setBlack = function (object) {
+        object.pieceColor = 1;
         object.traverse(function( child ) {
             if ( child instanceof THREE.Mesh ) {
                 child.material.map = texture;
@@ -1123,7 +1125,7 @@ Board.prototype.loadPieces = function( afterload ) {
     loadKing(setBlack, blackInitial);
 
     // add functionality for other models
-    this.loadOtherModels(loader);
+    self.loadOtherModels(loader);
 };
 
 /**
@@ -1284,7 +1286,6 @@ Board.prototype.swapModels = function () {
                 var model;
                 switch (pieces[i].name) {
                     case 'P':
-                    case '':
                         model = models.pawn;
                         break;
                     case 'R':
@@ -1307,21 +1308,28 @@ Board.prototype.swapModels = function () {
                         return;
                 }
 
+                // find the color of the piece we're changing
+                // when the mesh is changed it does not save the material
+                var color;
+                pieces[i].traverse(function (child) {
+                    if (child instanceof THREE.Mesh)
+                        color = child.material.color.r;
+                })
                 model = cloneObjMtl(model);
+
                 // remove all children parts of piece
                 for (var child = pieces.length - 1; child >= 0; child--) {
                     pieces[i].remove(child);
                 }
+                // and replace them with the new model meshes
                 model.traverse(function (child) {
-                    if (child.geometry) {
-                        if (pieces[i].pieceColor === 1)
-                            child.material.color.setRGB(0.1, 0.1, 0.1)
-                        else
-                            child.material.color.setRGB(0.9, 0.9, 0.9)
+                    if (child instanceof THREE.Mesh) {
+                        child.material.color.setRGB(color, color, color);
                         child.material.needsUpdate = true;
-                        pieces[i].add(child);
                     }
+                    pieces[i].add(child);
                 });
+                // rescale pieces and rotate knights and bishops to be correct
                 if (this.currentModels === 1) {
                     pieces[i].scale.z = pieces[i].scale.y = pieces[i].scale.x = 0.05;
                     if (pieces[i].name == 'N')
