@@ -516,7 +516,6 @@ Board.prototype.loadPieces = function( afterload ) {
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(4, 4);
     var setWhite = function (object) {
-        object.pieceColor = 0;
         object.traverse(function( child ) {
             if ( child instanceof THREE.Mesh ) {
                 child.material.map = texture;
@@ -526,7 +525,6 @@ Board.prototype.loadPieces = function( afterload ) {
     };
 
     var setBlack = function (object) {
-        object.pieceColor = 1;
         object.traverse(function( child ) {
             if ( child instanceof THREE.Mesh ) {
                 child.material.map = texture;
@@ -1278,6 +1276,7 @@ Board.prototype.loadOtherModels = function (loader) {
 
 // replace geometries
 Board.prototype.swapModels = function () {
+    var done = [];
     var models = this.downloadedModels;
     
     if (this.currentModels === 1) {
@@ -1292,75 +1291,72 @@ Board.prototype.swapModels = function () {
         for (var i in this.pieces) {
             var piece = this.pieces[i];
             var model;
-            if (piece) {
-                var model;
-                switch (piece.name) {
-                    case 'P':
-                        model = models.pawn;
-                        break;
-                    case 'R':
-                        model = models.rook;
-                        break;
-                    case 'N':
-                        model = models.knight;
-                        break;
-                    case 'B':
-                        model = models.bishop;
-                        break;
-                    case 'Q':
-                        model = models.queen;
-                        break;
-                    case 'K':
-                        model = models.king;
-                        break;
-                    default:
-                        console.log('invalid name');
-                        return;
-                }
+            switch (piece.name) {
+                case 'P':
+                    model = models.pawn;
+                    break;
+                case 'R':
+                    model = models.rook;
+                    break;
+                case 'N':
+                    model = models.knight;
+                    break;
+                case 'B':
+                    model = models.bishop;
+                    break;
+                case 'Q':
+                    model = models.queen;
+                    break;
+                case 'K':
+                    model = models.king;
+                    break;
+                default:
+                    console.log('invalid name');
+                    return;
+            }
+            console.log(model);
+            model = model.clone();
 
-                // find the color of the piece we're changing
-                // when the mesh is changed it does not save the material
-                var color = piece.children[0].material.color.r;
+            // find the color of the piece we're changing
+            // when the mesh is changed it does not save the material
+            var color;
+            if (piece.pieceColor === 0)  // white
+                color = 0.9;
+            else 
+                color = 0.1;
 
-                // remove all children parts of piece
-                for (var child = piece.children.length - 1; child >= 0; child--) {
-                    piece.remove(piece.children[child]);
-                }
+            // remove all children parts of piece
+            for (var child = piece.children.length - 1; child >= 0; child--) {
+                piece.remove(piece.children[child]);
+            }
 
-                // and replace them with the new model meshes
-                model = cloneObjMtl(model);
-                for (var c = 0; c < model.children.length; c++) {
-                    var child = model.children[c];
-                    child.material.color.setRGB(color, color, color);
-                    child.material.needsUpdate = true;
-                    piece.add(child);
-                }
+            // and replace them with the new model meshes
+            for (var c = 0; c < model.children.length; c++) {
+                var child = model.children[c].clone();
+                child.material.color.setRGB(color, color, color);
+                piece.add(child);
+            }
 
-                // rescale pieces and rotate knights and bishops to be correct
-                if (this.currentModels === 1) {
-                    piece.scale.z = piece.scale.y = piece.scale.x = 0.06;
-                    if (piece.name == 'N') {
-                        if (color > 0.5)
-                            piece.rotation.y = -Math.PI / 2;
-                        else
-                            piece.rotation.y = Math.PI / 2;
-                    }
-                    else if (piece.name == 'B') {
-                        piece.rotateY(Math.PI);
-                    }
+            // rescale pieces and rotate knights and bishops to be correct
+            if (this.currentModels === 1) {
+                piece.scale.z = piece.scale.y = piece.scale.x = 0.06;
+                if (piece.name == 'N') {
+                    if (color > 0.5)
+                        piece.rotation.y = -Math.PI / 2;
+                    else
+                        piece.rotation.y = Math.PI / 2;
                 }
-                // rotate pieces back when switching to custom models
-                else {
-                    piece.scale.z = piece.scale.y = piece.scale.x = 0.4;
-                    if (piece.name == 'N') {
-                        if (color > 0.5)
-                            piece.rotation.y = 0;
-                        else
-                            piece.rotation.y = Math.PI;
-                    }
-                    else if (piece.name == 'B')
-                        piece.rotateY(Math.PI);
+                else if (piece.name == 'B') {
+                    piece.rotateY(Math.PI);
                 }
+            }
+            // rotate pieces back when switching to custom models
+            else {
+                piece.scale.z = piece.scale.y = piece.scale.x = 0.4;
+                if (piece.name == 'N')
+                    piece.rotation.y = 0;
+                else if (piece.name == 'B')
+                    piece.rotateY(Math.PI);
             }
         }
     }

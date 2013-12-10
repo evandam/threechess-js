@@ -10,6 +10,15 @@ function Controller( scene ) {
         // setTimeout(function( ) {
         // self.connectTo();
         // }, 2000);
+        // board is all loaded, assign color vars to each one 
+        // (don't know where to do it when loading, seems easier here)
+        for (var piece in self.board.pieces) {
+            // white pieces in rank 1 and 2 (0 = white, 1 = black)
+            if (parseInt(piece[1]) < 3) 
+                self.board.pieces[piece].pieceColor = 0;
+            else 
+                self.board.pieces[piece].pieceColor = 1;
+        }
     });
     // root of url - append the game id
     this.root = 'https://10.11.18.65/cg/chess/';
