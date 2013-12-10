@@ -73,15 +73,15 @@
         initDatGui();
         animate();
 
-        // start camera movement on load
-        boardLevelView();
+        // start camera movement on load - give it a sec for load times
+        setTimeout(boardLevelView, 2000);
 
         function init() {
 
             container = document.createElement('div');
             document.body.appendChild(container);
             camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
-            camera.position.z = 10;
+            camera.position.z = -10;
             camera.position.y = 10;
             camera.position.x = 2;
 
@@ -195,17 +195,21 @@
         }
 
         // move the camera position towards the destination by the interval
+        // return true when done moving
         function moveCamera(axis, step, limit) {
             if (axis === 'Y') {
                 if (camera.position.y !== limit) {
                     if (camera.position.y < limit - step)
                         camera.position.y += step;
-                     else if (camera.position.y > limit + step)
+                    else if (camera.position.y > limit + step)
                         camera.position.y -= step;
                     else {
                         camera.position.y = limit;
                     }
+                    return false;
                 }
+                else
+                    return true;
             }
             else if (axis === 'X') {
                 if (camera.position.x !== limit) {
@@ -216,7 +220,10 @@
                     else {
                         camera.position.x = limit;
                     }
+                    return false;
                 }
+                else
+                    return true;
             }
             else if (axis === 'Z') {
                 if (camera.position.z !== limit) {
@@ -227,8 +234,20 @@
                     else {
                         camera.position.z = limit;
                     }
+                    return false;
                 }
+                else
+                    return true;
             }
+        }
+
+        // incrementally move the camera towards (x, y, z)
+        // return true when all movement is complete
+        function moveCameraTo(x, y, z) {
+            var xDone = moveCamera('X', 0.06, x);
+            var yDone = moveCamera('Y', 0.06, y);
+            var zDone = moveCamera('Z', 0.06, z);
+            return xDone && yDone && zDone;
         }
 
         function render() {
@@ -243,26 +262,11 @@
             // all of these functions either increment/decrement the position of the camera
             // and once the value is smaller than the step, it is set to the target value.
             if (toOverhead) {
-                // adjust height
-                moveCamera('Y', 0.1, maxY);
-
-                // center the camera over the board
-                moveCamera('Z', 0.05, 0.05);
-                moveCamera('X', 0.05, 0);
-
-                if (camera.position.y === maxY && camera.position.z === 0.05 && camera.position.x === 0)
-                    toOverhead = false;
+                // still moving until it returns true (done)
+                toOverhead = !moveCameraTo(0, 10, 8);
             }
             else if (toBoardLevel) {
-                // bring camera closer to the board
-                moveCamera('Y', 0.05, 4);
-                
-                // bring camera to side of board
-                moveCamera('X', 0.05, -5);
-                moveCamera('Z', 0.05, 8);
-
-                if (camera.position.y === 4 && camera.position.x === -5 && camera.position.z === 8)
-                    toBoardLevel = false;
+                toBoardLevel = !moveCameraTo(-10, 3, 2);
             }
 
             if (mouseEnabled && isClicked) {
