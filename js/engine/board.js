@@ -578,7 +578,7 @@ Board.prototype.loadPieces = function( afterload ) {
     var loadPawns = function( setcolor, startpos ) {
         // Load in the pieces, starting with the pawns
         loader.load('models/pawn.obj', 'models/pawn.mtl', function (object) {
-            self.customModels.pawn = object;
+            self.customModels.pawn = cloneObjMtl(object);
             // Make the pawns
             var pawn = object;
             var pos = [ ];
@@ -655,7 +655,7 @@ Board.prototype.loadPieces = function( afterload ) {
      */
     var loadRooks = function( setcolor, startpos ) {
         loader.load('models/rook.obj', 'models/rook.mtl', function (object) {
-            self.customModels.rook = object;
+            self.customModels.rook = cloneObjMtl(object);
             var rook = object;
             rook.move = simpleMove;
             rook.name = "R";
@@ -781,7 +781,7 @@ Board.prototype.loadPieces = function( afterload ) {
     var loadKnights = function( setcolor, startpos, dorotation, resetrotation ) {
         loader.load('models/knight.obj', 'models/knight.mtl',
                 function (object) {
-                    self.customModels.knight = object;
+                    self.customModels.knight = cloneObjMtl(object);
                     var knight = object;
                     var pos = [ ];
                     knight.move = kMove;
@@ -917,7 +917,7 @@ Board.prototype.loadPieces = function( afterload ) {
     var loadBishops = function( setcolor, startpos, dorotation, resetrotation ) {
         loader.load('models/bishop.obj', 'models/bishop.mtl',
                 function (object) {
-                    self.customModels.bishop = object;
+                    self.customModels.bishop = cloneObjMtl(object);
                     var bishop = object;
                     var pos = [ ];
 
@@ -1024,7 +1024,7 @@ Board.prototype.loadPieces = function( afterload ) {
      */
     var loadQueen = function( setcolor, startpos ) {
         loader.load('models/queen.obj', 'models/queen.mtl', function (object) {
-            self.customModels.queen = object;
+            self.customModels.queen = cloneObjMtl(object);
             var queen = object;
             var pos = [ ];
 
@@ -1102,7 +1102,7 @@ Board.prototype.loadPieces = function( afterload ) {
      */
     var loadKing = function( setcolor, startpos ) {
         loader.load('models/king.obj', 'models/king.mtl', function (object) {
-            self.customModels.king = object;
+            self.customModels.king = cloneObjMtl(object);
             var king = object;
             var pos = [ ];
 
@@ -1287,9 +1287,11 @@ Board.prototype.swapModels = function () {
     else
         this.currentModels = 1;
 
+    // only do this if all pieces are loaded
     if (models.king && models.queen && models.rook && models.bishop && models.knight && models.pawn) {
         for (var i in this.pieces) {
             var piece = this.pieces[i];
+            var model;
             if (piece) {
                 var model;
                 switch (piece.name) {
@@ -1318,35 +1320,46 @@ Board.prototype.swapModels = function () {
 
                 // find the color of the piece we're changing
                 // when the mesh is changed it does not save the material
-                var color;
-                piece.traverse(function (child) {
-                    if (child instanceof THREE.Mesh)
-                        color = child.material.color.r;
-                })
-                model = cloneObjMtl(model);
+                var color = piece.children[0].material.color.r;
 
                 // remove all children parts of piece
                 for (var child = piece.children.length - 1; child >= 0; child--) {
                     piece.remove(piece.children[child]);
                 }
+
                 // and replace them with the new model meshes
-                model.traverse(function (child) {
-                    if (child instanceof THREE.Mesh) {
-                        // child.material.color.setRGB(color, color, color);
-                        child.material.needsUpdate = true;
-                    }
+                model = cloneObjMtl(model);
+                for (var c = 0; c < model.children.length; c++) {
+                    var child = model.children[c];
+                    child.material.color.setRGB(color, color, color);
+                    child.material.needsUpdate = true;
                     piece.add(child);
-                });
+                }
+
                 // rescale pieces and rotate knights and bishops to be correct
                 if (this.currentModels === 1) {
-                    piece.scale.z = piece.scale.y = piece.scale.x = 0.05;
-                    if (piece.name == 'N')
-                        piece.rotateY(Math.PI / 2);
-                    else if (piece.name == 'B')
+                    piece.scale.z = piece.scale.y = piece.scale.x = 0.06;
+                    if (piece.name == 'N') {
+                        if (color > 0.5)
+                            piece.rotation.y = -Math.PI / 2;
+                        else
+                            piece.rotation.y = Math.PI / 2;
+                    }
+                    else if (piece.name == 'B') {
                         piece.rotateY(Math.PI);
+                    }
                 }
+                // rotate pieces back when switching to custom models
                 else {
                     piece.scale.z = piece.scale.y = piece.scale.x = 0.4;
+                    if (piece.name == 'N') {
+                        if (color > 0.5)
+                            piece.rotation.y = 0;
+                        else
+                            piece.rotation.y = Math.PI;
+                    }
+                    else if (piece.name == 'B')
+                        piece.rotateY(Math.PI);
                 }
             }
         }
