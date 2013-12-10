@@ -95,6 +95,8 @@ Controller.prototype.poll = function( ) {
 
         mins = Math.floor(data.blacktime / 60);
         secs = Math.floor(data.blacktime % 60);
+        if (secs < 10)
+            secs = '0' + secs;
         $('#blackTime').text(mins + ':' + secs);
 
     }, 'json');

@@ -7,7 +7,7 @@ function initDatGui() {
         "Start game": function () {
             controller.connectTo(this.GameID);
         },
-        "Alternate models": function () {
+        "Alt models-beta": function () {
             controller.board.swapModels();
         },
         "Rotate view": rotateView,
@@ -34,7 +34,7 @@ function initDatGui() {
         datView.Marble = !value;
         controller.board.switchTheme('wood');
     });
-    themes.add(datView, 'Alternate models');
+    themes.add(datView, 'Alt models-beta');
 
     var game = gui.addFolder('Game');
     game.add(datView, 'GameID');
