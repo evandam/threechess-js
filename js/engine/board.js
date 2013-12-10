@@ -1276,9 +1276,8 @@ Board.prototype.loadOtherModels = function (loader) {
 
 // replace geometries
 Board.prototype.swapModels = function () {
-    var done = [];
+    // determine if we're swapping in custom or downloaded models
     var models = this.downloadedModels;
-    
     if (this.currentModels === 1) {
         models = this.customModels;
         this.currentModels = 0;
@@ -1314,26 +1313,25 @@ Board.prototype.swapModels = function () {
                     console.log('invalid name');
                     return;
             }
-            console.log(model);
             model = model.clone();
 
-            // find the color of the piece we're changing
-            // when the mesh is changed it does not save the material
-            var color;
-            if (piece.pieceColor === 0)  // white
-                color = 0.9;
-            else 
-                color = 0.1;
-
             // remove all children parts of piece
-            for (var child = piece.children.length - 1; child >= 0; child--) {
-                piece.remove(piece.children[child]);
+            while(piece.children.length > 0) {
+                piece.remove(piece.children[piece.children.length - 1]);
             }
 
             // and replace them with the new model meshes
             for (var c = 0; c < model.children.length; c++) {
                 var child = model.children[c].clone();
-                child.material.color.setRGB(color, color, color);
+                child.material = child.material.clone();
+                // set color to white
+                if (piece.pieceColor === 0) {
+                    child.material.color.setRGB(0.9, 0.9, 0.9);
+                }
+                // black
+                else {
+                    child.material.color.setRGB(0.1, 0.1, 0.1);
+                }
                 piece.add(child);
             }
 
@@ -1341,8 +1339,10 @@ Board.prototype.swapModels = function () {
             if (this.currentModels === 1) {
                 piece.scale.z = piece.scale.y = piece.scale.x = 0.06;
                 if (piece.name == 'N') {
-                    if (color > 0.5)
+                    // rotate white
+                    if (piece.pieceColor === 0)
                         piece.rotation.y = -Math.PI / 2;
+                    // rotate black
                     else
                         piece.rotation.y = Math.PI / 2;
                 }
